@@ -28,7 +28,7 @@ Six months of predecessor failures produced the architectural blueprint. ErnOS V
 
 ## Part II — The Hybridization (Hardening the Foundation)
 
-When I discovered OpenClaw, I saw an incredible potential body for my cognitive architecture—a robust, multi-channel plugin framework. But out-of-the-box, it was an insecure, highly vulnerable sandbox masquerading as a fortress.
+When I discovered OpenClaw, I saw an incredible potential body for my cognitive architecture—a robust, multi-channel plugin framework. But out-of-the-box, it was an insecure, highly vulnerable sandbox masquerading as a fortress. it was similar to some of my earlier work on ernos V1 - 3 so i knew how to integrate that with ernos V5 because they had a better coding style and architecture than my earlier work. as a no coder.
 
 The hybridization of ErnOS wasn't just taking the bones of OpenClaw and plugging in a "soul." It required a systemic, mathematical security overhaul to ensure that local, autonomous AI couldn't be weaponized against its host.
 
