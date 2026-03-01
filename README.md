@@ -23,30 +23,24 @@ Want to experience ErnOS before setting up the local environment? Join our commu
 
 ---
 
-## 🏗️ Quick Start Guide
+## 🏗️ Quick Start Guide (One-Click Install)
 
-### Prerequisites
+We've designed ErnOS to be instantly deployable for anyone, regardless of their technical background. **You do not need to manually install dependencies.**
 
-- [Node.js](https://nodejs.org/) >= 22.12.0
-- [pnpm](https://pnpm.io/)
-- Docker (for sandbox execution of untrusted code)
+Run the following command in your terminal. It will automatically detect your OS (Mac/Linux), install Docker, Node.js, pnpm, and Ollama (for offline AI inference), clone the repository, and boot the system:
 
-### Installation
+```bash
+curl -fsSL https://raw.githubusercontent.com/ernos/ernos/main/install.sh | bash
+```
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/ernos/ernos.git
-   cd ernos
-   ```
-2. Install dependencies:
-   ```bash
-   pnpm install
-   ```
-3. Boot the Gateway:
-   ```bash
-   pnpm run dev
-   ```
-4. Authenticate and begin creating your autonomous workflows! The system will automatically provision your `~/.ernos/` configuration and memory state upon first boot.
+Once the installation completes, run the gateway:
+
+```bash
+cd ~/ernos
+./start-ernos.sh
+```
+
+The system will automatically provision your Graph Memory and `~/.ernos/` configuration.
 
 ## 📚 Documentation
 
