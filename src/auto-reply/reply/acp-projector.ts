@@ -8,7 +8,7 @@ import type { ReplyDispatchKind } from "./reply-dispatcher.js";
 
 const DEFAULT_ACP_STREAM_COALESCE_IDLE_MS = 350;
 const DEFAULT_ACP_STREAM_MAX_CHUNK_CHARS = 1800;
-const ACP_BLOCK_REPLY_TIMEOUT_MS = 15_000;
+const ACP_BLOCK_REPLY_TIMEOUT_MS = 2 * 60_000; // 2 min (was 15s)
 
 function clampPositiveInteger(
   value: unknown,

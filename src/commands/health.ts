@@ -71,7 +71,7 @@ export type HealthSummary = {
   };
 };
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = 60_000; // 60s (was 10s)
 
 const debugHealth = (...args: unknown[]) => {
   if (isTruthyEnvValue(process.env.ERNOS_DEBUG_HEALTH)) {

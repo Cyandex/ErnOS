@@ -59,7 +59,7 @@ import { incrementRunCompactionCount, persistRunSessionUsage } from "./session-r
 import { createTypingSignaler } from "./typing-mode.js";
 import type { TypingController } from "./typing.js";
 
-const BLOCK_REPLY_SEND_TIMEOUT_MS = 15_000;
+const BLOCK_REPLY_SEND_TIMEOUT_MS = 2 * 60_000; // 2 min (was 15s)
 const UNSCHEDULED_REMINDER_NOTE =
   "Note: I did not schedule a reminder in this turn, so this will not trigger automatically.";
 const REMINDER_COMMITMENT_PATTERNS: RegExp[] = [

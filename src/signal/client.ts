@@ -26,7 +26,7 @@ export type SignalSseEvent = {
   id?: string;
 };
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = 2 * 60_000; // 2 min (was 10s)
 
 function normalizeBaseUrl(url: string): string {
   const trimmed = url.trim();
