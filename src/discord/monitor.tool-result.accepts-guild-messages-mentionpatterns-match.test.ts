@@ -123,10 +123,10 @@ function createDefaultThreadConfig(): LoadedConfig {
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: "/tmp/openclaw",
+        workspace: "/tmp/ernos",
       },
     },
-    session: { store: "/tmp/openclaw-sessions.json" },
+    session: { store: "/tmp/ernos-sessions.json" },
     messages: { responsePrefix: "PFX" },
     channels: {
       discord: {
@@ -147,10 +147,10 @@ function createMentionRequiredGuildConfig(
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: "/tmp/openclaw",
+        workspace: "/tmp/ernos",
       },
     },
-    session: { store: "/tmp/openclaw-sessions.json" },
+    session: { store: "/tmp/ernos-sessions.json" },
     channels: {
       discord: {
         dm: { enabled: true, policy: "open" },
@@ -274,17 +274,14 @@ describe("discord tool result dispatch", () => {
       const cfg = createMentionRequiredGuildConfig({
         messages: {
           responsePrefix: "PFX",
-          groupChat: { mentionPatterns: ["\\bopenclaw\\b"] },
+          groupChat: { mentionPatterns: ["\\bernos\\b"] },
         },
       });
 
       const handler = await createHandler(cfg);
       const client = createGuildTextClient();
 
-      await handler(
-        createGuildMessageEvent({ messageId: "m2", content: "openclaw: hello" }),
-        client,
-      );
+      await handler(createGuildMessageEvent({ messageId: "m2", content: "ernos: hello" }), client);
 
       expect(dispatchMock).toHaveBeenCalledTimes(1);
       expect(sendMock).toHaveBeenCalledTimes(1);
@@ -301,10 +298,10 @@ describe("discord tool result dispatch", () => {
           defaults: {
             model: "anthropic/claude-opus-4-5",
             humanDelay: { mode: "off" },
-            workspace: "/tmp/openclaw",
+            workspace: "/tmp/ernos",
           },
         },
-        session: { store: "/tmp/openclaw-sessions.json" },
+        session: { store: "/tmp/ernos-sessions.json" },
         channels: {
           discord: { dm: { enabled: true, policy: "open" } },
         },
@@ -368,7 +365,7 @@ describe("discord tool result dispatch", () => {
             mentionedEveryone: false,
             mentionedUsers: [],
             mentionedRoles: [],
-            author: { id: "bot-id", bot: true, username: "OpenClaw" },
+            author: { id: "bot-id", bot: true, username: "ErnOS" },
           },
         },
         eventPatch: {
@@ -449,8 +446,8 @@ describe("discord tool result dispatch", () => {
     }>();
 
     const cfg = {
-      agent: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/openclaw" },
-      session: { store: "/tmp/openclaw-sessions.json" },
+      agent: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/ernos" },
+      session: { store: "/tmp/ernos-sessions.json" },
       channels: {
         discord: {
           dm: { enabled: true, policy: "open" },

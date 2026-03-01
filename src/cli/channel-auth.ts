@@ -1,6 +1,6 @@
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { getChannelPlugin, normalizeChannelId } from "../channels/plugins/index.js";
-import { loadConfig, type OpenClawConfig } from "../config/config.js";
+import { loadConfig, type ErnOSConfig } from "../config/config.js";
 import { setVerbose } from "../globals.js";
 import { resolveMessageChannelSelection } from "../infra/outbound/channel-selection.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
@@ -17,7 +17,7 @@ type ChannelAuthMode = "login" | "logout";
 async function resolveChannelPluginForMode(
   opts: ChannelAuthOptions,
   mode: ChannelAuthMode,
-  cfg: OpenClawConfig,
+  cfg: ErnOSConfig,
 ): Promise<{ channelInput: string; channelId: string; plugin: ChannelPlugin }> {
   const explicitChannel = opts.channel?.trim();
   const channelInput = explicitChannel
@@ -36,11 +36,7 @@ async function resolveChannelPluginForMode(
   return { channelInput, channelId, plugin: plugin as ChannelPlugin };
 }
 
-function resolveAccountContext(
-  plugin: ChannelPlugin,
-  opts: ChannelAuthOptions,
-  cfg: OpenClawConfig,
-) {
+function resolveAccountContext(plugin: ChannelPlugin, opts: ChannelAuthOptions, cfg: ErnOSConfig) {
   const accountId = opts.account?.trim() || resolveChannelDefaultAccountId({ plugin, cfg });
   return { accountId };
 }

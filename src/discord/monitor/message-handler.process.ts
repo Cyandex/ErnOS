@@ -33,8 +33,10 @@ import { buildUntrustedChannelMetadata } from "../../security/channel-metadata.j
 import { stripReasoningTagsFromText } from "../../shared/text/reasoning-tags.js";
 import { truncateUtf16Safe } from "../../utils.js";
 import { chunkDiscordTextWithMode } from "../chunk.js";
+import { CognitionTracker } from "../cognition-tracker.js";
 import { resolveDiscordDraftStreamingChunking } from "../draft-chunking.js";
 import { createDiscordDraftStream } from "../draft-stream.js";
+import { sendFeedbackButtons } from "../feedback-buttons.js";
 import { reactMessageDiscord, removeReactionDiscord } from "../send.js";
 import { editMessageDiscord } from "../send.messages.js";
 import { normalizeDiscordSlug, resolveDiscordOwnerAllowFrom } from "./allow-list.js";
@@ -463,6 +465,93 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
   let hasStreamedMessage = false;
   let finalizedViaPreviewMessage = false;
 
+  /** Actually deliver a single final payload to Discord (handles draftStream, etc). */
+  const deliverFinalPayload = async (payload: ReplyPayload) => {
+    if (draftStream) {
+      await flushDraft();
+      const hasMedia = Boolean(payload.mediaUrl) || (payload.mediaUrls?.length ?? 0) > 0;
+      const finalText = payload.text;
+      const previewFinalText = resolvePreviewFinalText(finalText);
+      const previewMessageId = draftStream.messageId();
+
+      const canFinalizeViaPreviewEdit =
+        !finalizedViaPreviewMessage &&
+        !hasMedia &&
+        typeof previewFinalText === "string" &&
+        typeof previewMessageId === "string" &&
+        !payload.isError;
+
+      if (canFinalizeViaPreviewEdit) {
+        await draftStream.stop();
+        try {
+          await editMessageDiscord(
+            deliverChannelId,
+            previewMessageId,
+            { content: previewFinalText },
+            { rest: client.rest },
+          );
+          finalizedViaPreviewMessage = true;
+          replyReference.markSent();
+          return;
+        } catch (err) {
+          logVerbose(
+            `discord: preview final edit failed; falling back to standard send (${String(err)})`,
+          );
+        }
+      }
+
+      if (!finalizedViaPreviewMessage) {
+        await draftStream.stop();
+        const messageIdAfterStop = draftStream.messageId();
+        if (
+          typeof messageIdAfterStop === "string" &&
+          typeof previewFinalText === "string" &&
+          !hasMedia &&
+          !payload.isError
+        ) {
+          try {
+            await editMessageDiscord(
+              deliverChannelId,
+              messageIdAfterStop,
+              { content: previewFinalText },
+              { rest: client.rest },
+            );
+            finalizedViaPreviewMessage = true;
+            replyReference.markSent();
+            return;
+          } catch (err) {
+            logVerbose(
+              `discord: post-stop preview edit failed; falling back to standard send (${String(err)})`,
+            );
+          }
+        }
+      }
+
+      if (!finalizedViaPreviewMessage) {
+        await draftStream.clear();
+      }
+    }
+
+    const replyToId = replyReference.use();
+    await deliverDiscordReply({
+      replies: [payload],
+      target: deliverTarget,
+      token,
+      accountId,
+      rest: client.rest,
+      runtime,
+      replyToId,
+      replyToMode,
+      textLimit,
+      maxLinesPerMessage: discordConfig?.maxLinesPerMessage,
+      tableMode,
+      chunkMode,
+      sessionKey: ctxPayload.SessionKey,
+      threadBindings,
+    });
+    replyReference.markSent();
+  };
+
   const resolvePreviewFinalText = (text?: string) => {
     if (typeof text !== "string") {
       return undefined;
@@ -581,92 +670,26 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
         // Reasoning/thinking payloads should not be delivered to Discord.
         return;
       }
-      if (draftStream && isFinal) {
-        await flushDraft();
-        const hasMedia = Boolean(payload.mediaUrl) || (payload.mediaUrls?.length ?? 0) > 0;
-        const finalText = payload.text;
-        const previewFinalText = resolvePreviewFinalText(finalText);
-        const previewMessageId = draftStream.messageId();
 
-        // Try to finalize via preview edit (text-only, fits in 2000 chars, not an error)
-        const canFinalizeViaPreviewEdit =
-          !finalizedViaPreviewMessage &&
-          !hasMedia &&
-          typeof previewFinalText === "string" &&
-          typeof previewMessageId === "string" &&
-          !payload.isError;
-
-        if (canFinalizeViaPreviewEdit) {
-          await draftStream.stop();
-          try {
-            await editMessageDiscord(
-              deliverChannelId,
-              previewMessageId,
-              { content: previewFinalText },
-              { rest: client.rest },
-            );
-            finalizedViaPreviewMessage = true;
-            replyReference.markSent();
-            return;
-          } catch (err) {
-            logVerbose(
-              `discord: preview final edit failed; falling back to standard send (${String(err)})`,
-            );
-          }
+      if (!isFinal && info.kind === "block") {
+        if (payload.text) {
+          await cognitionTracker.updateText(payload.text);
         }
-
-        // Check if stop() flushed a message we can edit
-        if (!finalizedViaPreviewMessage) {
-          await draftStream.stop();
-          const messageIdAfterStop = draftStream.messageId();
-          if (
-            typeof messageIdAfterStop === "string" &&
-            typeof previewFinalText === "string" &&
-            !hasMedia &&
-            !payload.isError
-          ) {
-            try {
-              await editMessageDiscord(
-                deliverChannelId,
-                messageIdAfterStop,
-                { content: previewFinalText },
-                { rest: client.rest },
-              );
-              finalizedViaPreviewMessage = true;
-              replyReference.markSent();
-              return;
-            } catch (err) {
-              logVerbose(
-                `discord: post-stop preview edit failed; falling back to standard send (${String(err)})`,
-              );
-            }
-          }
-        }
-
-        // Clear the preview and fall through to standard delivery
-        if (!finalizedViaPreviewMessage) {
-          await draftStream.clear();
-        }
+        replyReference.markSent();
+        return;
       }
 
-      const replyToId = replyReference.use();
-      await deliverDiscordReply({
-        replies: [payload],
-        target: deliverTarget,
-        token,
-        accountId,
-        rest: client.rest,
-        runtime,
-        replyToId,
-        replyToMode,
-        textLimit,
-        maxLinesPerMessage: discordConfig?.maxLinesPerMessage,
-        tableMode,
-        chunkMode,
-        sessionKey: ctxPayload.SessionKey,
-        threadBindings,
-      });
-      replyReference.markSent();
+      // Intermediate payloads (tagged by dispatch-from-config based on array index)
+      // get routed to the CognitionTracker text buffer instead of being sent
+      // as standalone Discord messages.
+      if (payload.isIntermediate && payload.text) {
+        await cognitionTracker.updateText(payload.text);
+        replyReference.markSent();
+        return;
+      }
+
+      // Final payload — deliver to Discord via the standard path.
+      await deliverFinalPayload(payload);
     },
     onError: (err, info) => {
       runtime.error?.(danger(`discord ${info.kind} reply failed: ${String(err)}`));
@@ -676,6 +699,13 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
       await statusReactions.setThinking();
     },
   });
+
+  // --- CognitionTracker: live-updating processing embed ---
+  const cognitionTracker = new CognitionTracker({
+    rest: client.rest as never,
+    channelId: deliverChannelId,
+  });
+  await cognitionTracker.start();
 
   let dispatchResult: Awaited<ReturnType<typeof dispatchInboundMessage>> | null = null;
   let dispatchError = false;
@@ -718,9 +748,11 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
         onModelSelected,
         onReasoningStream: async () => {
           await statusReactions.setThinking();
+          await cognitionTracker.updateThinking();
         },
         onToolStart: async (payload) => {
           await statusReactions.setTool(payload.name);
+          await cognitionTracker.updateTool(payload.name);
         },
       },
     });
@@ -739,6 +771,11 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
       logVerbose(`discord: draft cleanup failed: ${String(err)}`);
     } finally {
       markDispatchIdle();
+    }
+    await cognitionTracker.finalize(dispatchError);
+    // Send feedback buttons (👍/👎) after successful reply
+    if (!dispatchError && dispatchResult?.queuedFinal) {
+      await sendFeedbackButtons({ rest: client.rest as never, channelId: deliverChannelId });
     }
     if (statusReactionsEnabled) {
       if (dispatchError) {

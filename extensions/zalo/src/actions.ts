@@ -1,15 +1,15 @@
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionName,
-  OpenClawConfig,
-} from "openclaw/plugin-sdk";
-import { extractToolSend, jsonResult, readStringParam } from "openclaw/plugin-sdk";
+  ErnOSConfig,
+} from "ernos/plugin-sdk";
+import { extractToolSend, jsonResult, readStringParam } from "ernos/plugin-sdk";
 import { listEnabledZaloAccounts } from "./accounts.js";
 import { sendMessageZalo } from "./send.js";
 
 const providerId = "zalo";
 
-function listEnabledAccounts(cfg: OpenClawConfig) {
+function listEnabledAccounts(cfg: ErnOSConfig) {
   return listEnabledZaloAccounts(cfg).filter(
     (account) => account.enabled && account.tokenSource !== "none",
   );

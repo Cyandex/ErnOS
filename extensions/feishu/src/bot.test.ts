@@ -1,4 +1,4 @@
-import type { ClawdbotConfig, PluginRuntime, RuntimeEnv } from "openclaw/plugin-sdk";
+import type { ErnOSConfig, PluginRuntime, RuntimeEnv } from "ernos/plugin-sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeishuMessageEvent } from "./bot.js";
 import { buildFeishuAgentBody, handleFeishuMessage } from "./bot.js";
@@ -53,7 +53,7 @@ function createRuntimeEnv(): RuntimeEnv {
   } as RuntimeEnv;
 }
 
-async function dispatchMessage(params: { cfg: ClawdbotConfig; event: FeishuMessageEvent }) {
+async function dispatchMessage(params: { cfg: ErnOSConfig; event: FeishuMessageEvent }) {
   await handleFeishuMessage({
     cfg: params.cfg,
     event: params.event,
@@ -167,7 +167,7 @@ describe("handleFeishuMessage command authorization", () => {
   });
 
   it("uses authorizer resolution instead of hardcoded CommandAuthorized=true", async () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ErnOSConfig = {
       commands: { useAccessGroups: true },
       channels: {
         feishu: {
@@ -175,7 +175,7 @@ describe("handleFeishuMessage command authorization", () => {
           allowFrom: ["ou-admin"],
         },
       },
-    } as ClawdbotConfig;
+    } as ErnOSConfig;
 
     const event: FeishuMessageEvent = {
       sender: {
@@ -212,7 +212,7 @@ describe("handleFeishuMessage command authorization", () => {
     mockShouldComputeCommandAuthorized.mockReturnValue(false);
     mockReadAllowFromStore.mockResolvedValue(["ou-attacker"]);
 
-    const cfg: ClawdbotConfig = {
+    const cfg: ErnOSConfig = {
       commands: { useAccessGroups: true },
       channels: {
         feishu: {
@@ -220,7 +220,7 @@ describe("handleFeishuMessage command authorization", () => {
           allowFrom: [],
         },
       },
-    } as ClawdbotConfig;
+    } as ErnOSConfig;
 
     const event: FeishuMessageEvent = {
       sender: {
@@ -253,14 +253,14 @@ describe("handleFeishuMessage command authorization", () => {
     mockReadAllowFromStore.mockResolvedValue([]);
     mockUpsertPairingRequest.mockResolvedValue({ code: "ABCDEFGH", created: true });
 
-    const cfg: ClawdbotConfig = {
+    const cfg: ErnOSConfig = {
       channels: {
         feishu: {
           dmPolicy: "pairing",
           allowFrom: [],
         },
       },
-    } as ClawdbotConfig;
+    } as ErnOSConfig;
 
     const event: FeishuMessageEvent = {
       sender: {
@@ -304,7 +304,7 @@ describe("handleFeishuMessage command authorization", () => {
     mockShouldComputeCommandAuthorized.mockReturnValue(true);
     mockResolveCommandAuthorizedFromAuthorizers.mockReturnValue(false);
 
-    const cfg: ClawdbotConfig = {
+    const cfg: ErnOSConfig = {
       commands: { useAccessGroups: true },
       channels: {
         feishu: {
@@ -315,7 +315,7 @@ describe("handleFeishuMessage command authorization", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ErnOSConfig;
 
     const event: FeishuMessageEvent = {
       sender: {
@@ -351,7 +351,7 @@ describe("handleFeishuMessage command authorization", () => {
     mockShouldComputeCommandAuthorized.mockReturnValue(true);
     mockResolveCommandAuthorizedFromAuthorizers.mockReturnValue(true);
 
-    const cfg: ClawdbotConfig = {
+    const cfg: ErnOSConfig = {
       commands: { useAccessGroups: true },
       channels: {
         feishu: {
@@ -363,7 +363,7 @@ describe("handleFeishuMessage command authorization", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ErnOSConfig;
 
     const event: FeishuMessageEvent = {
       sender: {
@@ -398,13 +398,13 @@ describe("handleFeishuMessage command authorization", () => {
   it("uses video file_key (not thumbnail image_key) for inbound video download", async () => {
     mockShouldComputeCommandAuthorized.mockReturnValue(false);
 
-    const cfg: ClawdbotConfig = {
+    const cfg: ErnOSConfig = {
       channels: {
         feishu: {
           dmPolicy: "open",
         },
       },
-    } as ClawdbotConfig;
+    } as ErnOSConfig;
 
     const event: FeishuMessageEvent = {
       sender: {
@@ -446,13 +446,13 @@ describe("handleFeishuMessage command authorization", () => {
   it("includes message_id in BodyForAgent on its own line", async () => {
     mockShouldComputeCommandAuthorized.mockReturnValue(false);
 
-    const cfg: ClawdbotConfig = {
+    const cfg: ErnOSConfig = {
       channels: {
         feishu: {
           dmPolicy: "open",
         },
       },
-    } as ClawdbotConfig;
+    } as ErnOSConfig;
 
     const event: FeishuMessageEvent = {
       sender: {
@@ -495,7 +495,7 @@ describe("handleFeishuMessage command authorization", () => {
       },
     });
 
-    const cfg: ClawdbotConfig = {
+    const cfg: ErnOSConfig = {
       channels: {
         feishu: {
           appId: "cli_test",
@@ -507,7 +507,7 @@ describe("handleFeishuMessage command authorization", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ErnOSConfig;
 
     const event: FeishuMessageEvent = {
       sender: {

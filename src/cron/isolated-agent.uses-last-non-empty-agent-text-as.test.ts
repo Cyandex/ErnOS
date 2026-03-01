@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadModelCatalog } from "../agents/model-catalog.js";
-import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
+import { runWithObserverAudit as runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import type { CliDeps } from "../cli/deps.js";
 import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
 import {
@@ -207,7 +207,7 @@ describe("runCronIsolatedAgentTurn", () => {
       const call = vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0] as {
         agentDir?: string;
       };
-      expect(call?.agentDir).toBe(path.join(home, ".openclaw", "agents", "main", "agent"));
+      expect(call?.agentDir).toBe(path.join(home, ".ernos", "agents", "main", "agent"));
     });
   });
 
@@ -235,7 +235,7 @@ describe("runCronIsolatedAgentTurn", () => {
 
       const cfg = makeCfg(
         home,
-        path.join(home, ".openclaw", "agents", "{agentId}", "sessions", "sessions.json"),
+        path.join(home, ".ernos", "agents", "{agentId}", "sessions", "sessions.json"),
         {
           agents: {
             defaults: { workspace: path.join(home, "default-workspace") },

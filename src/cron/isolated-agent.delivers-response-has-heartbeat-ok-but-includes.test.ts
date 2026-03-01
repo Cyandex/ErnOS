@@ -1,6 +1,6 @@
 import "./isolated-agent.mocks.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
+import { runWithObserverAudit as runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { runSubagentAnnounceFlow } from "../agents/subagent-announce.js";
 import type { CliDeps } from "../cli/deps.js";
 import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
@@ -137,7 +137,7 @@ describe("runCronIsolatedAgentTurn", () => {
 
       vi.mocked(runSubagentAnnounceFlow).mockClear();
       vi.mocked(deps.sendMessageTelegram).mockClear();
-      mockEmbeddedAgentPayloads([{ text: "HEARTBEAT_OK 🦞" }]);
+      mockEmbeddedAgentPayloads([{ text: "HEARTBEAT_OK 🌱" }]);
 
       const cfg = makeCfg(home, storePath);
       cfg.agents = {

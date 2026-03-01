@@ -1,0 +1,16 @@
+{
+  "name": "ernos",
+  "version": "2026.2.12",
+  "description": "Compatibility shim that forwards to ernos",
+  "bin": {
+    "ernos": "./bin/ernos.js"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./cli-entry": "./bin/ernos.js"
+  },
+  "dependencies": {
+    "ernos": "workspace:*"
+  }
+}

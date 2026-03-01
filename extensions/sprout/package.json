@@ -1,0 +1,11 @@
+{
+  "name": "@ernos/sprout",
+  "version": "2026.2.27",
+  "description": "Sprout workflow tool plugin (typed pipelines + resumable approvals)",
+  "type": "module",
+  "ernos": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

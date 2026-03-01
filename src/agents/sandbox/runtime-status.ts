@@ -1,5 +1,5 @@
 import { formatCliCommand } from "../../cli/command-format.js";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { ErnOSConfig } from "../../config/config.js";
 import { canonicalizeMainSessionAlias, resolveAgentMainSessionKey } from "../../config/sessions.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { expandToolGroups } from "../tool-policy.js";
@@ -17,10 +17,7 @@ function shouldSandboxSession(cfg: SandboxConfig, sessionKey: string, mainSessio
   return sessionKey.trim() !== mainSessionKey.trim();
 }
 
-function resolveMainSessionKeyForSandbox(params: {
-  cfg?: OpenClawConfig;
-  agentId: string;
-}): string {
+function resolveMainSessionKeyForSandbox(params: { cfg?: ErnOSConfig; agentId: string }): string {
   if (params.cfg?.session?.scope === "global") {
     return "global";
   }
@@ -31,7 +28,7 @@ function resolveMainSessionKeyForSandbox(params: {
 }
 
 function resolveComparableSessionKeyForSandbox(params: {
-  cfg?: OpenClawConfig;
+  cfg?: ErnOSConfig;
   agentId: string;
   sessionKey: string;
 }): string {
@@ -42,10 +39,7 @@ function resolveComparableSessionKeyForSandbox(params: {
   });
 }
 
-export function resolveSandboxRuntimeStatus(params: {
-  cfg?: OpenClawConfig;
-  sessionKey?: string;
-}): {
+export function resolveSandboxRuntimeStatus(params: { cfg?: ErnOSConfig; sessionKey?: string }): {
   agentId: string;
   sessionKey: string;
   mainSessionKey: string;
@@ -79,7 +73,7 @@ export function resolveSandboxRuntimeStatus(params: {
 }
 
 export function formatSandboxToolPolicyBlockedMessage(params: {
-  cfg?: OpenClawConfig;
+  cfg?: ErnOSConfig;
   sessionKey?: string;
   toolName: string;
 }): string | undefined {
@@ -130,9 +124,7 @@ export function formatSandboxToolPolicyBlockedMessage(params: {
   if (runtime.mode === "non-main") {
     lines.push(`- Use main session key (direct): ${runtime.mainSessionKey}`);
   }
-  lines.push(
-    `- See: ${formatCliCommand(`openclaw sandbox explain --session ${runtime.sessionKey}`)}`,
-  );
+  lines.push(`- See: ${formatCliCommand(`ernos sandbox explain --session ${runtime.sessionKey}`)}`);
 
   return lines.join("\n");
 }

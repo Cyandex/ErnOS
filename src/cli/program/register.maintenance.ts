@@ -15,7 +15,7 @@ export function registerMaintenanceCommands(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/doctor", "docs.openclaw.ai/cli/doctor")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/doctor", "docs.ernos.ai/cli/doctor")}\n`,
     )
     .option("--no-workspace-suggestions", "Disable workspace memory system suggestions", false)
     .option("--yes", "Accept defaults without prompting", false)
@@ -46,7 +46,7 @@ export function registerMaintenanceCommands(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/dashboard", "docs.openclaw.ai/cli/dashboard")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/dashboard", "docs.ernos.ai/cli/dashboard")}\n`,
     )
     .option("--no-open", "Print URL but do not launch a browser")
     .action(async (opts) => {
@@ -63,9 +63,12 @@ export function registerMaintenanceCommands(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/reset", "docs.openclaw.ai/cli/reset")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/reset", "docs.ernos.ai/cli/reset")}\n`,
     )
-    .option("--scope <scope>", "config|config+creds+sessions|full (default: interactive prompt)")
+    .option(
+      "--scope <scope>",
+      "runtime|config|config+creds+sessions|full (default: interactive prompt)",
+    )
     .option("--yes", "Skip confirmation prompts", false)
     .option("--non-interactive", "Disable prompts (requires --scope + --yes)", false)
     .option("--dry-run", "Print actions without removing files", false)
@@ -77,6 +80,7 @@ export function registerMaintenanceCommands(program: Command) {
           nonInteractive: Boolean(opts.nonInteractive),
           dryRun: Boolean(opts.dryRun),
         });
+        defaultRuntime.exit(0);
       });
     });
 
@@ -86,7 +90,7 @@ export function registerMaintenanceCommands(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/uninstall", "docs.openclaw.ai/cli/uninstall")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/uninstall", "docs.ernos.ai/cli/uninstall")}\n`,
     )
     .option("--service", "Remove the gateway service", false)
     .option("--state", "Remove state + config", false)

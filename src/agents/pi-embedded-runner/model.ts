@@ -1,8 +1,8 @@
 import type { Api, Model } from "@mariozechner/pi-ai";
 import type { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { ErnOSConfig } from "../../config/config.js";
 import type { ModelDefinitionConfig } from "../../config/types.js";
-import { resolveOpenClawAgentDir } from "../agent-paths.js";
+import { resolveErnOSAgentDir } from "../agent-paths.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
 import { buildModelAliasLines } from "../model-alias-lines.js";
 import { normalizeModelCompat } from "../model-compat.js";
@@ -43,14 +43,14 @@ export function resolveModel(
   provider: string,
   modelId: string,
   agentDir?: string,
-  cfg?: OpenClawConfig,
+  cfg?: ErnOSConfig,
 ): {
   model?: Model<Api>;
   error?: string;
   authStorage: AuthStorage;
   modelRegistry: ModelRegistry;
 } {
-  const resolvedAgentDir = agentDir ?? resolveOpenClawAgentDir();
+  const resolvedAgentDir = agentDir ?? resolveErnOSAgentDir();
   const authStorage = discoverAuthStorage(resolvedAgentDir);
   const modelRegistry = discoverModels(authStorage, resolvedAgentDir);
   const model = modelRegistry.find(provider, modelId) as Model<Api> | null;
@@ -86,7 +86,7 @@ export function resolveModel(
         provider,
         baseUrl: "https://openrouter.ai/api/v1",
         reasoning: false,
-        input: ["text"],
+        input: ["text", "image"],
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         contextWindow: DEFAULT_CONTEXT_TOKENS,
         // Align with OPENROUTER_DEFAULT_MAX_TOKENS in models-config.providers.ts
@@ -103,11 +103,16 @@ export function resolveModel(
         provider,
         baseUrl: providerCfg?.baseUrl,
         reasoning: false,
-        input: ["text"],
+        input: ["text", "image"],
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         contextWindow: providerCfg?.models?.[0]?.contextWindow ?? DEFAULT_CONTEXT_TOKENS,
         maxTokens: providerCfg?.models?.[0]?.maxTokens ?? DEFAULT_CONTEXT_TOKENS,
       } as Model<Api>);
+      if (normalizedProvider === "ollama") {
+        const { registerOllamaProvider } =
+          require("../ollama-stream.js") as typeof import("../ollama-stream.js");
+        registerOllamaProvider(providerCfg?.baseUrl ?? "http://127.0.0.1:11434");
+      }
       return { model: fallbackModel, authStorage, modelRegistry };
     }
     return {
@@ -116,7 +121,13 @@ export function resolveModel(
       modelRegistry,
     };
   }
-  return { model: normalizeModelCompat(model), authStorage, modelRegistry };
+  const normalizedModel = normalizeModelCompat(model);
+  if (normalizeProviderId(normalizedModel.provider) === "ollama") {
+    const { registerOllamaProvider } =
+      require("../ollama-stream.js") as typeof import("../ollama-stream.js");
+    registerOllamaProvider(normalizedModel.baseUrl ?? "http://127.0.0.1:11434");
+  }
+  return { model: normalizedModel, authStorage, modelRegistry };
 }
 
 /**
@@ -128,17 +139,17 @@ export function resolveModel(
  * error.  This detects known providers that require opt-in auth and adds
  * a hint.
  *
- * See: https://github.com/openclaw/openclaw/issues/17328
+ * See: https://github.com/ernos/ernos/issues/17328
  */
 const LOCAL_PROVIDER_HINTS: Record<string, string> = {
   ollama:
     "Ollama requires authentication to be registered as a provider. " +
-    'Set OLLAMA_API_KEY="ollama-local" (any value works) or run "openclaw configure". ' +
-    "See: https://docs.openclaw.ai/providers/ollama",
+    'Set OLLAMA_API_KEY="ollama-local" (any value works) or run "ernos configure". ' +
+    "See: https://docs.ernos.ai/providers/ollama",
   vllm:
     "vLLM requires authentication to be registered as a provider. " +
-    'Set VLLM_API_KEY (any value works) or run "openclaw configure". ' +
-    "See: https://docs.openclaw.ai/providers/vllm",
+    'Set VLLM_API_KEY (any value works) or run "ernos configure". ' +
+    "See: https://docs.ernos.ai/providers/vllm",
 };
 
 function buildUnknownModelError(provider: string, modelId: string): string {

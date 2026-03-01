@@ -65,12 +65,16 @@ vi.mock("../../agents/model-fallback.js", () => ({
 
 const runWithModelFallbackMock = vi.mocked(runWithModelFallback);
 
-vi.mock("../../agents/pi-embedded.js", () => ({
-  runEmbeddedPiAgent: vi.fn().mockResolvedValue({
+vi.mock("../../agents/pi-embedded.js", () => {
+  const runEmbeddedMock = vi.fn().mockResolvedValue({
     payloads: [{ text: "test output" }],
     meta: { agentMeta: { usage: { input: 10, output: 20 } } },
-  }),
-}));
+  });
+  return {
+    runEmbeddedPiAgent: runEmbeddedMock,
+    runWithObserverAudit: runEmbeddedMock,
+  };
+});
 
 vi.mock("../../agents/context.js", () => ({
   lookupContextTokens: vi.fn().mockReturnValue(128000),
@@ -218,8 +222,8 @@ describe("runCronIsolatedAgentTurn — skill filter", () => {
   let previousFastTestEnv: string | undefined;
   beforeEach(() => {
     vi.clearAllMocks();
-    previousFastTestEnv = process.env.OPENCLAW_TEST_FAST;
-    delete process.env.OPENCLAW_TEST_FAST;
+    previousFastTestEnv = process.env.ERNOS_TEST_FAST;
+    delete process.env.ERNOS_TEST_FAST;
     buildWorkspaceSkillSnapshotMock.mockReturnValue({
       prompt: "<available_skills></available_skills>",
       resolvedSkills: [],
@@ -251,10 +255,10 @@ describe("runCronIsolatedAgentTurn — skill filter", () => {
 
   afterEach(() => {
     if (previousFastTestEnv == null) {
-      delete process.env.OPENCLAW_TEST_FAST;
+      delete process.env.ERNOS_TEST_FAST;
       return;
     }
-    process.env.OPENCLAW_TEST_FAST = previousFastTestEnv;
+    process.env.ERNOS_TEST_FAST = previousFastTestEnv;
   });
 
   it("passes agent-level skillFilter to buildWorkspaceSkillSnapshot", async () => {

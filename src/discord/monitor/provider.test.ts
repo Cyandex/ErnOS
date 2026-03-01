@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { ErnOSConfig } from "../../config/config.js";
 import type { RuntimeEnv } from "../../runtime.js";
 
 const {
@@ -83,7 +83,8 @@ vi.mock("@buape/carbon", () => {
       return clientGetPluginMock(name);
     }
   }
-  return { Client, ReadyListener };
+  class Button {}
+  return { Client, ReadyListener, Button };
 });
 
 vi.mock("@buape/carbon/gateway", () => ({
@@ -242,7 +243,7 @@ describe("monitorDiscordProvider", () => {
     };
   };
 
-  const baseConfig = (): OpenClawConfig =>
+  const baseConfig = (): ErnOSConfig =>
     ({
       channels: {
         discord: {
@@ -251,7 +252,7 @@ describe("monitorDiscordProvider", () => {
           },
         },
       },
-    }) as OpenClawConfig;
+    }) as ErnOSConfig;
 
   beforeEach(() => {
     clientFetchUserMock.mockClear().mockResolvedValue({ id: "bot-1" });

@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/line",
+  "name": "@ernos/line",
   "version": "2026.2.27",
   "private": true,
-  "description": "OpenClaw LINE channel plugin",
+  "description": "ErnOS LINE channel plugin",
   "type": "module",
-  "openclaw": {
+  "ernos": {
     "extensions": [
       "./index.ts"
     ],
@@ -19,7 +19,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@openclaw/line",
+      "npmSpec": "@ernos/line",
       "localPath": "extensions/line",
       "defaultChoice": "npm"
     }

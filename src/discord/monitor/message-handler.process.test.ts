@@ -55,7 +55,7 @@ const dispatchInboundMessage = vi.fn(async (_params?: DispatchInboundParams) => 
 const recordInboundSession = vi.fn(async () => {});
 const configSessionsMocks = vi.hoisted(() => ({
   readSessionUpdatedAt: vi.fn(() => undefined),
-  resolveStorePath: vi.fn(() => "/tmp/openclaw-discord-process-test-sessions.json"),
+  resolveStorePath: vi.fn(() => "/tmp/ernos-discord-process-test-sessions.json"),
 }));
 const readSessionUpdatedAt = configSessionsMocks.readSessionUpdatedAt;
 const resolveStorePath = configSessionsMocks.resolveStorePath;
@@ -117,10 +117,45 @@ const { processDiscordMessage } = await import("./message-handler.process.js");
 
 const createBaseContext = createBaseDiscordMessageContext;
 
+const trackerMocks = vi.hoisted(() => ({
+  start: vi.fn(),
+  updateTool: vi.fn(),
+  updateThinking: vi.fn(),
+  updateText: vi.fn(),
+  finalize: vi.fn(),
+}));
+
+vi.mock("../cognition-tracker.js", () => ({
+  CognitionTracker: class {
+    readonly startTimeMs = Date.now();
+    readonly tools = new Map();
+    readonly messageRef = { id: "track-1" } as any;
+    async start() {
+      return trackerMocks.start();
+    }
+    async updateTool(tool: any) {
+      return trackerMocks.updateTool(tool);
+    }
+    async updateThinking(text: string) {
+      return trackerMocks.updateThinking(text);
+    }
+    async updateText(text: string) {
+      return trackerMocks.updateText(text);
+    }
+    async finalize() {
+      return trackerMocks.finalize();
+    }
+  },
+}));
+
 beforeEach(() => {
   vi.useRealTimers();
   sendMocks.reactMessageDiscord.mockClear();
   sendMocks.removeReactionDiscord.mockClear();
+  trackerMocks.updateTool.mockClear();
+  trackerMocks.updateThinking.mockClear();
+  trackerMocks.updateText.mockClear();
+  trackerMocks.finalize.mockClear();
   editMessageDiscord.mockClear();
   deliverDiscordReply.mockClear();
   createDiscordDraftStream.mockClear();
@@ -134,7 +169,7 @@ beforeEach(() => {
   });
   recordInboundSession.mockResolvedValue(undefined);
   readSessionUpdatedAt.mockReturnValue(undefined);
-  resolveStorePath.mockReturnValue("/tmp/openclaw-discord-process-test-sessions.json");
+  resolveStorePath.mockReturnValue("/tmp/ernos-discord-process-test-sessions.json");
   threadBindingTesting.resetThreadBindingsForTests();
 });
 
@@ -277,7 +312,7 @@ describe("processDiscordMessage ack reactions", () => {
             timing: { debounceMs: 0 },
           },
         },
-        session: { store: "/tmp/openclaw-discord-process-test-sessions.json" },
+        session: { store: "/tmp/ernos-discord-process-test-sessions.json" },
       },
     });
 
@@ -424,7 +459,7 @@ describe("processDiscordMessage draft streaming", () => {
     return await createBaseContext({
       cfg: {
         messages: { ackReaction: "👀" },
-        session: { store: "/tmp/openclaw-discord-process-test-sessions.json" },
+        session: { store: "/tmp/ernos-discord-process-test-sessions.json" },
         channels: {
           discord: {
             draftChunk: { minChars: 1, maxChars: 5, breakPreference: "newline" },
@@ -498,7 +533,7 @@ describe("processDiscordMessage draft streaming", () => {
     expect(editMessageDiscord).not.toHaveBeenCalled();
   });
 
-  it("delivers non-reasoning block payloads to Discord", async () => {
+  it("delivers non-reasoning block payloads to Discord via tracker updates", async () => {
     dispatchInboundMessage.mockImplementationOnce(async (params?: DispatchInboundParams) => {
       await params?.dispatcher.sendBlockReply({ text: "hello from block stream" });
       return { queuedFinal: false, counts: { final: 0, tool: 0, block: 1 } };
@@ -509,7 +544,10 @@ describe("processDiscordMessage draft streaming", () => {
     // oxlint-disable-next-line typescript/no-explicit-any
     await processDiscordMessage(ctx as any);
 
-    expect(deliverDiscordReply).toHaveBeenCalledTimes(1);
+    // We no longer call deliverDiscordReply for block payloads.
+    // Instead the CognitionTracker buffers it and updates the main tracker message.
+    expect(deliverDiscordReply).not.toHaveBeenCalled();
+    expect(trackerMocks.updateText).toHaveBeenCalledWith("hello from block stream");
   });
 
   it("streams block previews using draft chunking", async () => {

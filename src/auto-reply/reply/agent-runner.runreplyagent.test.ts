@@ -65,6 +65,7 @@ vi.mock("../../agents/model-fallback.js", () => ({
 vi.mock("../../agents/pi-embedded.js", () => ({
   queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
   runEmbeddedPiAgent: (params: unknown) => state.runEmbeddedPiAgentMock(params),
+  runWithObserverAudit: (params: unknown, maxRetries?: number) => state.runEmbeddedPiAgentMock(params),
 }));
 
 vi.mock("../../agents/cli-runner.js", () => ({
@@ -87,7 +88,7 @@ beforeEach(() => {
   state.runEmbeddedPiAgentMock.mockClear();
   state.runCliAgentMock.mockClear();
   vi.mocked(enqueueFollowupRun).mockClear();
-  vi.stubEnv("OPENCLAW_TEST_FAST", "1");
+  vi.stubEnv("ERNOS_TEST_FAST", "1");
 });
 
 function createMinimalRun(params?: {
@@ -316,7 +317,7 @@ describe("runReplyAgent heartbeat followup guard", () => {
 describe("runReplyAgent typing (heartbeat)", () => {
   async function withTempStateDir<T>(fn: (stateDir: string) => Promise<T>): Promise<T> {
     return await withStateDirEnv(
-      "openclaw-typing-heartbeat-",
+      "ernos-typing-heartbeat-",
       async ({ stateDir }) => await fn(stateDir),
     );
   }
@@ -1441,7 +1442,7 @@ describe("runReplyAgent memory flush", () => {
   }
 
   beforeAll(async () => {
-    fixtureRoot = await fs.mkdtemp(path.join(tmpdir(), "openclaw-memory-flush-"));
+    fixtureRoot = await fs.mkdtemp(path.join(tmpdir(), "ernos-memory-flush-"));
   });
 
   afterAll(async () => {

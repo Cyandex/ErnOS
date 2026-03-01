@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadModelCatalog } from "../agents/model-catalog.js";
-import type { OpenClawConfig } from "../config/config.js";
+import type { ErnOSConfig } from "../config/config.js";
 import { withTempHome as withTempHomeHarness } from "../config/home-env.test-harness.js";
 import { getReplyFromConfig } from "./reply.js";
 
@@ -13,6 +13,7 @@ type RunEmbeddedPiAgentReply = Awaited<ReturnType<RunEmbeddedPiAgent>>;
 const piEmbeddedMock = vi.hoisted(() => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
   runEmbeddedPiAgent: vi.fn<RunEmbeddedPiAgent>(),
+  runWithObserverAudit: vi.fn<RunEmbeddedPiAgent>(),
   queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
   resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
@@ -47,12 +48,12 @@ function createTelegramMessage(messageSid: string) {
   } as const;
 }
 
-function createReplyConfig(home: string, streamMode?: "block"): OpenClawConfig {
+function createReplyConfig(home: string, streamMode?: "block"): ErnOSConfig {
   return {
     agents: {
       defaults: {
         model: { primary: "anthropic/claude-opus-4-5" },
-        workspace: path.join(home, "openclaw"),
+        workspace: path.join(home, "ernos"),
       },
     },
     channels: { telegram: { allowFrom: ["*"], streamMode } },
@@ -80,20 +81,20 @@ async function runTelegramReply(params: {
 }
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeHarness("openclaw-stream-", async (home) => {
-    await fs.mkdir(path.join(home, ".openclaw", "agents", "main", "sessions"), { recursive: true });
+  return withTempHomeHarness("ernos-stream-", async (home) => {
+    await fs.mkdir(path.join(home, ".ernos", "agents", "main", "sessions"), { recursive: true });
     return fn(home);
   });
 }
 
 describe("block streaming", () => {
   beforeEach(() => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "1");
+    vi.stubEnv("ERNOS_TEST_FAST", "1");
     piEmbeddedMock.abortEmbeddedPiRun.mockClear().mockReturnValue(false);
     piEmbeddedMock.queueEmbeddedPiMessage.mockClear().mockReturnValue(false);
     piEmbeddedMock.isEmbeddedPiRunActive.mockClear().mockReturnValue(false);
     piEmbeddedMock.isEmbeddedPiRunStreaming.mockClear().mockReturnValue(false);
-    piEmbeddedMock.runEmbeddedPiAgent.mockClear();
+    piEmbeddedMock.runWithObserverAudit.mockClear();
     vi.mocked(loadModelCatalog).mockResolvedValue([
       { id: "claude-opus-4-5", name: "Opus 4.5", provider: "anthropic" },
       { id: "gpt-4.1-mini", name: "GPT-4.1 Mini", provider: "openai" },
@@ -127,7 +128,7 @@ describe("block streaming", () => {
           meta: createEmbeddedReply("first").meta,
         };
       };
-      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(impl);
+      piEmbeddedMock.runWithObserverAudit.mockImplementation(impl);
 
       const replyPromise = runTelegramReply({
         home,
@@ -145,7 +146,7 @@ describe("block streaming", () => {
       expect(seen).toEqual(["first\n\nsecond"]);
 
       const onBlockReplyStreamMode = vi.fn().mockResolvedValue(undefined);
-      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(async () =>
+      piEmbeddedMock.runWithObserverAudit.mockImplementation(async () =>
         createEmbeddedReply("final"),
       );
 
@@ -169,7 +170,7 @@ describe("block streaming", () => {
         seen.push(payload.text ?? "");
       });
 
-      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(
+      piEmbeddedMock.runWithObserverAudit.mockImplementation(
         async (params: RunEmbeddedPiAgentParams) => {
           void params.onBlockReply?.({ text: "\n\n  Hello from stream" });
           return createEmbeddedReply("\n\n  Hello from stream");
@@ -193,7 +194,7 @@ describe("block streaming", () => {
     await withTempHome(async (home) => {
       const onBlockReply = vi.fn();
 
-      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(
+      piEmbeddedMock.runWithObserverAudit.mockImplementation(
         async (params: RunEmbeddedPiAgentParams) => {
           void params.onBlockReply?.({ text: "Result\nMEDIA: ./image.png" });
           return createEmbeddedReply("Result\nMEDIA: ./image.png");

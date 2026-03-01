@@ -1,0 +1,45 @@
+{
+  "comment": "ErnOS Docker sandbox seccomp profile. Blocks dangerous syscalls that could enable container escape while allowing normal application operation.",
+  "defaultAction": "SCMP_ACT_ALLOW",
+  "syscalls": [
+    {
+      "names": [
+        "mount",
+        "umount2",
+        "ptrace",
+        "unshare",
+        "pivot_root",
+        "mknod",
+        "mknodat",
+        "swapon",
+        "swapoff",
+        "reboot",
+        "init_module",
+        "finit_module",
+        "delete_module",
+        "kexec_load",
+        "kexec_file_load",
+        "open_by_handle_at",
+        "acct",
+        "settimeofday",
+        "clock_settime",
+        "add_key",
+        "request_key",
+        "keyctl",
+        "bpf",
+        "userfaultfd",
+        "perf_event_open",
+        "move_mount",
+        "open_tree",
+        "mount_setattr",
+        "fsconfig",
+        "fsmount",
+        "fsopen",
+        "fspick"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "args": [],
+      "comment": "Block syscalls that enable container escape, kernel module loading, and filesystem manipulation"
+    }
+  ]
+}

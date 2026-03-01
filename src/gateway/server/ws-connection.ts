@@ -228,6 +228,10 @@ export function attachGatewayWsConnectionHandler(params: {
         logWsControl.info(
           `webchat disconnected code=${code} reason=${logReason || "n/a"} conn=${connId}`,
         );
+        // Unsubscribe this WebSocket from all chat session subscriptions
+        // so future agent events don't accumulate stale connIds.
+        const context = buildRequestContext();
+        context.unsubscribeChatSession(connId);
       }
       if (client?.presenceKey) {
         upsertPresence(client.presenceKey, { reason: "disconnect" });

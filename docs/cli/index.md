@@ -1,5 +1,5 @@
 ---
-summary: "OpenClaw CLI reference for `openclaw` commands, subcommands, and options"
+summary: "ErnOS CLI reference for `ernos` commands, subcommands, and options"
 read_when:
   - Adding or modifying CLI commands or options
   - Documenting new command surfaces
@@ -55,15 +55,15 @@ This page describes the current CLI behavior. If commands change, update this do
 - [`secrets`](/cli/secrets)
 - [`skills`](/cli/skills)
 - [`daemon`](/cli/daemon) (legacy alias for gateway service commands)
-- [`clawbot`](/cli/clawbot) (legacy alias namespace)
+- [`ernos`](/cli/ernos) (legacy alias namespace)
 - [`voicecall`](/cli/voicecall) (plugin; if installed)
 
 ## Global flags
 
-- `--dev`: isolate state under `~/.openclaw-dev` and shift default ports.
-- `--profile <name>`: isolate state under `~/.openclaw-<name>`.
+- `--dev`: isolate state under `~/.ernos-dev` and shift default ports.
+- `--profile <name>`: isolate state under `~/.ernos-<name>`.
 - `--no-color`: disable ANSI colors.
-- `--update`: shorthand for `openclaw update` (source installs only).
+- `--update`: shorthand for `ernos update` (source installs only).
 - `-V`, `--version`, `-v`: print version and exit.
 
 ## Output styling
@@ -76,7 +76,7 @@ This page describes the current CLI behavior. If commands change, update this do
 
 ## Color palette
 
-OpenClaw uses a lobster palette for CLI output.
+ErnOS uses a sprout palette for CLI output.
 
 - `accent` (#FF5A2D): headings, labels, primary highlights.
 - `accentBright` (#FF7A3D): command names, emphasis.
@@ -87,12 +87,12 @@ OpenClaw uses a lobster palette for CLI output.
 - `error` (#E23D2D): errors, failures.
 - `muted` (#8B7F77): de-emphasis, metadata.
 
-Palette source of truth: `src/terminal/palette.ts` (aka “lobster seam”).
+Palette source of truth: `src/terminal/palette.ts` (aka “sprout seam”).
 
 ## Command tree
 
 ```
-openclaw [--dev] [--profile <name>] <command>
+ernos [--dev] [--profile <name>] <command>
   setup
   onboard
   configure
@@ -251,7 +251,7 @@ openclaw [--dev] [--profile <name>] <command>
     list
     approve
   qr
-  clawbot
+  ernos
     qr
   docs
   dns
@@ -259,30 +259,30 @@ openclaw [--dev] [--profile <name>] <command>
   tui
 ```
 
-Note: plugins can add additional top-level commands (for example `openclaw voicecall`).
+Note: plugins can add additional top-level commands (for example `ernos voicecall`).
 
 ## Security
 
-- `openclaw security audit` — audit config + local state for common security foot-guns.
-- `openclaw security audit --deep` — best-effort live Gateway probe.
-- `openclaw security audit --fix` — tighten safe defaults and chmod state/config.
+- `ernos security audit` — audit config + local state for common security foot-guns.
+- `ernos security audit --deep` — best-effort live Gateway probe.
+- `ernos security audit --fix` — tighten safe defaults and chmod state/config.
 
 ## Secrets
 
-- `openclaw secrets reload` — re-resolve refs and atomically swap the runtime snapshot.
-- `openclaw secrets audit` — scan for plaintext residues, unresolved refs, and precedence drift.
-- `openclaw secrets configure` — interactive helper for provider setup + SecretRef mapping + preflight/apply.
-- `openclaw secrets apply --from <plan.json>` — apply a previously generated plan (`--dry-run` supported).
+- `ernos secrets reload` — re-resolve refs and atomically swap the runtime snapshot.
+- `ernos secrets audit` — scan for plaintext residues, unresolved refs, and precedence drift.
+- `ernos secrets configure` — interactive helper for provider setup + SecretRef mapping + preflight/apply.
+- `ernos secrets apply --from <plan.json>` — apply a previously generated plan (`--dry-run` supported).
 
 ## Plugins
 
 Manage extensions and their config:
 
-- `openclaw plugins list` — discover plugins (use `--json` for machine output).
-- `openclaw plugins info <id>` — show details for a plugin.
-- `openclaw plugins install <path|.tgz|npm-spec>` — install a plugin (or add a plugin path to `plugins.load.paths`).
-- `openclaw plugins enable <id>` / `disable <id>` — toggle `plugins.entries.<id>.enabled`.
-- `openclaw plugins doctor` — report plugin load errors.
+- `ernos plugins list` — discover plugins (use `--json` for machine output).
+- `ernos plugins info <id>` — show details for a plugin.
+- `ernos plugins install <path|.tgz|npm-spec>` — install a plugin (or add a plugin path to `plugins.load.paths`).
+- `ernos plugins enable <id>` / `disable <id>` — toggle `plugins.entries.<id>.enabled`.
+- `ernos plugins doctor` — report plugin load errors.
 
 Most plugin changes require a gateway restart. See [/plugin](/tools/plugin).
 
@@ -290,9 +290,9 @@ Most plugin changes require a gateway restart. See [/plugin](/tools/plugin).
 
 Vector search over `MEMORY.md` + `memory/*.md`:
 
-- `openclaw memory status` — show index stats.
-- `openclaw memory index` — reindex memory files.
-- `openclaw memory search "<query>"` (or `--query "<query>"`) — semantic search over memory.
+- `ernos memory status` — show index stats.
+- `ernos memory index` — reindex memory files.
+- `ernos memory search "<query>"` (or `--query "<query>"`) — semantic search over memory.
 
 ## Chat slash commands
 
@@ -312,7 +312,7 @@ Initialize config + workspace.
 
 Options:
 
-- `--workspace <dir>`: agent workspace path (default `~/.openclaw/workspace`).
+- `--workspace <dir>`: agent workspace path (default `~/.ernos/workspace`).
 - `--wizard`: run the onboarding wizard.
 - `--non-interactive`: run wizard without prompts.
 - `--mode <local|remote>`: wizard mode.
@@ -380,7 +380,7 @@ Interactive configuration wizard (models, channels, skills, gateway).
 
 ### `config`
 
-Non-interactive config helpers (get/set/unset). Running `openclaw config` with no
+Non-interactive config helpers (get/set/unset). Running `ernos config` with no
 subcommand launches the wizard.
 
 Subcommands:
@@ -409,11 +409,11 @@ Manage chat channel accounts (WhatsApp/Telegram/Discord/Google Chat/Slack/Matter
 Subcommands:
 
 - `channels list`: show configured channels and auth profiles.
-- `channels status`: check gateway reachability and channel health (`--probe` runs extra checks; use `openclaw health` or `openclaw status --deep` for gateway health probes).
-- Tip: `channels status` prints warnings with suggested fixes when it can detect common misconfigurations (then points you to `openclaw doctor`).
+- `channels status`: check gateway reachability and channel health (`--probe` runs extra checks; use `ernos health` or `ernos status --deep` for gateway health probes).
+- Tip: `channels status` prints warnings with suggested fixes when it can detect common misconfigurations (then points you to `ernos doctor`).
 - `channels logs`: show recent channel logs from the gateway log file.
 - `channels add`: wizard-style setup when no flags are passed; flags switch to non-interactive mode.
-  - When adding a non-default account to a channel still using single-account top-level config, OpenClaw moves account-scoped values into `channels.<channel>.accounts.default` before writing the new account.
+  - When adding a non-default account to a channel still using single-account top-level config, ErnOS moves account-scoped values into `channels.<channel>.accounts.default` before writing the new account.
   - Non-interactive `channels add` does not auto-create/upgrade bindings; channel-only bindings continue to match the default account.
 - `channels remove`: disable by default; pass `--delete` to remove config entries without prompts.
 - `channels login`: interactive channel login (WhatsApp Web only).
@@ -452,11 +452,11 @@ More detail: [/concepts/oauth](/concepts/oauth)
 Examples:
 
 ```bash
-openclaw channels add --channel telegram --account alerts --name "Alerts Bot" --token $TELEGRAM_BOT_TOKEN
-openclaw channels add --channel discord --account work --name "Work Bot" --token $DISCORD_BOT_TOKEN
-openclaw channels remove --channel discord --account work --delete
-openclaw channels status --probe
-openclaw status --deep
+ernos channels add --channel telegram --account alerts --name "Alerts Bot" --token $TELEGRAM_BOT_TOKEN
+ernos channels add --channel discord --account work --name "Work Bot" --token $DISCORD_BOT_TOKEN
+ernos channels remove --channel discord --account work --delete
+ernos channels status --probe
+ernos status --deep
 ```
 
 ### `skills`
@@ -475,7 +475,7 @@ Options:
 - `--json`: output JSON (no styling).
 - `-v`, `--verbose`: include missing requirements detail.
 
-Tip: use `npx clawhub` to search, install, and sync skills.
+Tip: use `npx ernhub` to search, install, and sync skills.
 
 ### `pairing`
 
@@ -540,8 +540,8 @@ Subcommands:
 
 Examples:
 
-- `openclaw message send --target +15555550123 --message "Hi"`
-- `openclaw message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi`
+- `ernos message send --target +15555550123 --message "Hi"`
+- `ernos message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi`
 
 ### `agent`
 
@@ -589,7 +589,7 @@ Options:
 - `--non-interactive`
 - `--json`
 
-Binding specs use `channel[:accountId]`. When `accountId` is omitted, OpenClaw may resolve account scope via channel defaults/plugin hooks; otherwise it is a channel binding without explicit account scope.
+Binding specs use `channel[:accountId]`. When `accountId` is omitted, ErnOS may resolve account scope via channel defaults/plugin hooks; otherwise it is a channel binding without explicit account scope.
 
 #### `agents bindings`
 
@@ -656,12 +656,12 @@ Notes:
 
 ### Usage tracking
 
-OpenClaw can surface provider usage/quota when OAuth/API creds are available.
+ErnOS can surface provider usage/quota when OAuth/API creds are available.
 
 Surfaces:
 
 - `/status` (adds a short provider usage line when available)
-- `openclaw status --usage` (prints full provider breakdown)
+- `ernos status --usage` (prints full provider breakdown)
 - macOS menu bar (Usage section under Context)
 
 Notes:
@@ -771,7 +771,7 @@ Notes:
 
 - `gateway status` probes the Gateway RPC by default using the service’s resolved port/config (override with `--url/--token/--password`).
 - `gateway status` supports `--no-probe`, `--deep`, and `--json` for scripting.
-- `gateway status` also surfaces legacy or extra gateway services when it can detect them (`--deep` adds system-level scans). Profile-named OpenClaw services are treated as first-class and aren't flagged as "extra".
+- `gateway status` also surfaces legacy or extra gateway services when it can detect them (`--deep` adds system-level scans). Profile-named ErnOS services are treated as first-class and aren't flagged as "extra".
 - `gateway status` prints which config path the CLI uses vs which config the service likely uses (service env), plus the resolved probe target URL.
 - `gateway install|uninstall|start|stop|restart` support `--json` for scripting (default output stays human-friendly).
 - `gateway install` defaults to Node runtime; bun is **not recommended** (WhatsApp/Telegram bugs).
@@ -789,11 +789,11 @@ Notes:
 Examples:
 
 ```bash
-openclaw logs --follow
-openclaw logs --limit 200
-openclaw logs --plain
-openclaw logs --json
-openclaw logs --no-color
+ernos logs --follow
+ernos logs --limit 200
+ernos logs --plain
+ernos logs --json
+ernos logs --no-color
 ```
 
 ### `gateway <subcommand>`
@@ -829,13 +829,13 @@ Preferred Anthropic auth (setup-token):
 
 ```bash
 claude setup-token
-openclaw models auth setup-token --provider anthropic
-openclaw models status
+ernos models auth setup-token --provider anthropic
+ernos models status
 ```
 
 ### `models` (root)
 
-`openclaw models` is an alias for `models status`.
+`ernos models` is an alias for `models status`.
 
 Root options:
 
@@ -991,7 +991,7 @@ All `cron` commands accept `--url`, `--token`, `--timeout`, `--expect-final`.
 ## Node host
 
 `node` runs a **headless node host** or manages it as a background service. See
-[`openclaw node`](/cli/node).
+[`ernos node`](/cli/node).
 
 Subcommands:
 
@@ -1046,7 +1046,7 @@ Location:
 
 ## Browser
 
-Browser control CLI (dedicated Chrome/Brave/Edge/Chromium). See [`openclaw browser`](/cli/browser) and the [Browser tool](/tools/browser).
+Browser control CLI (dedicated Chrome/Brave/Edge/Chromium). See [`ernos browser`](/cli/browser) and the [Browser tool](/tools/browser).
 
 Common options:
 

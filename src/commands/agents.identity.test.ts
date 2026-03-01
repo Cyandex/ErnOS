@@ -23,7 +23,7 @@ type ConfigWritePayload = {
 };
 
 async function createIdentityWorkspace(subdir = "work") {
-  const root = await makeTempWorkspace("openclaw-identity-");
+  const root = await makeTempWorkspace("ernos-identity-");
   const workspace = path.join(root, subdir);
   await fs.mkdir(workspace, { recursive: true });
   return { root, workspace };
@@ -60,10 +60,10 @@ describe("agents set-identity command", () => {
   it("sets identity from workspace IDENTITY.md", async () => {
     const { root, workspace } = await createIdentityWorkspace();
     await writeIdentityFile(workspace, [
-      "- Name: OpenClaw",
+      "- Name: ErnOS",
       "- Creature: helpful sloth",
       "- Emoji: :)",
-      "- Avatar: avatars/openclaw.png",
+      "- Avatar: avatars/ernos.png",
       "",
     ]);
 
@@ -83,10 +83,10 @@ describe("agents set-identity command", () => {
 
     expect(configMocks.writeConfigFile).toHaveBeenCalledTimes(1);
     expect(getWrittenMainIdentity()).toEqual({
-      name: "OpenClaw",
+      name: "ErnOS",
       theme: "helpful sloth",
       emoji: ":)",
-      avatar: "avatars/openclaw.png",
+      avatar: "avatars/ernos.png",
     });
   });
 
@@ -116,10 +116,10 @@ describe("agents set-identity command", () => {
   it("overrides identity file values with explicit flags", async () => {
     const { workspace } = await createIdentityWorkspace();
     await writeIdentityFile(workspace, [
-      "- Name: OpenClaw",
-      "- Theme: space lobster",
+      "- Name: ErnOS",
+      "- Theme: space sprout",
       "- Emoji: :)",
-      "- Avatar: avatars/openclaw.png",
+      "- Avatar: avatars/ernos.png",
       "",
     ]);
 
@@ -133,7 +133,7 @@ describe("agents set-identity command", () => {
         workspace,
         fromIdentity: true,
         name: "Nova",
-        emoji: "🦞",
+        emoji: "🌱",
         avatar: "https://example.com/override.png",
       },
       runtime,
@@ -141,8 +141,8 @@ describe("agents set-identity command", () => {
 
     expect(getWrittenMainIdentity()).toEqual({
       name: "Nova",
-      theme: "space lobster",
-      emoji: "🦞",
+      theme: "space sprout",
+      emoji: "🌱",
       avatar: "https://example.com/override.png",
     });
   });

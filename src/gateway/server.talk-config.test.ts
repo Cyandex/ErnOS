@@ -20,7 +20,7 @@ installGatewayTestHooks({ scope: "suite" });
 type GatewaySocket = Parameters<Parameters<typeof withServer>[0]>[0];
 const TALK_CONFIG_DEVICE_PATH = path.join(
   os.tmpdir(),
-  `openclaw-talk-config-device-${process.pid}.json`,
+  `ernos-talk-config-device-${process.pid}.json`,
 );
 const TALK_CONFIG_DEVICE = loadOrCreateDeviceIdentity(TALK_CONFIG_DEVICE_PATH);
 
@@ -94,11 +94,9 @@ describe("gateway talk.config", () => {
       expect(res.ok).toBe(true);
       expect(res.payload?.config?.talk?.provider).toBe("elevenlabs");
       expect(res.payload?.config?.talk?.providers?.elevenlabs?.voiceId).toBe("voice-123");
-      expect(res.payload?.config?.talk?.providers?.elevenlabs?.apiKey).toBe(
-        "__OPENCLAW_REDACTED__",
-      );
+      expect(res.payload?.config?.talk?.providers?.elevenlabs?.apiKey).toBe("__ERNOS_REDACTED__");
       expect(res.payload?.config?.talk?.voiceId).toBe("voice-123");
-      expect(res.payload?.config?.talk?.apiKey).toBe("__OPENCLAW_REDACTED__");
+      expect(res.payload?.config?.talk?.apiKey).toBe("__ERNOS_REDACTED__");
     });
   });
 

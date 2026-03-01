@@ -243,6 +243,71 @@ export function createToolEventRecipientRegistry(): ToolEventRecipientRegistry {
   return { add, get, markFinal };
 }
 
+// ─── Chat Session Subscriber Registry ──────────────────────────────────
+// Maps sessionKey → Set<connId> so chat events are only sent to clients
+// that have actively interacted with a session (via chat.history or chat.send).
+// Prevents DM content from leaking to unrelated WebUI clients.
+
+export type ChatSessionSubscriberRegistry = {
+  subscribe: (sessionKey: string, connId: string) => void;
+  unsubscribe: (connId: string) => void;
+  getSubscribers: (sessionKey: string) => ReadonlySet<string> | undefined;
+};
+
+export function createChatSessionSubscribers(): ChatSessionSubscriberRegistry {
+  // sessionKey → Set<connId>
+  const sessions = new Map<string, Set<string>>();
+  // connId → Set<sessionKey> (reverse index for fast unsubscribe on disconnect)
+  const connSessions = new Map<string, Set<string>>();
+
+  const subscribe = (sessionKey: string, connId: string) => {
+    if (!sessionKey || !connId) {
+      return;
+    }
+    const normalized = sessionKey.trim().toLowerCase();
+
+    // Forward index
+    let connIds = sessions.get(normalized);
+    if (!connIds) {
+      connIds = new Set();
+      sessions.set(normalized, connIds);
+    }
+    connIds.add(connId);
+
+    // Reverse index
+    let keys = connSessions.get(connId);
+    if (!keys) {
+      keys = new Set();
+      connSessions.set(connId, keys);
+    }
+    keys.add(normalized);
+  };
+
+  const unsubscribe = (connId: string) => {
+    const keys = connSessions.get(connId);
+    if (!keys) {
+      return;
+    }
+    for (const sessionKey of keys) {
+      const connIds = sessions.get(sessionKey);
+      if (connIds) {
+        connIds.delete(connId);
+        if (connIds.size === 0) {
+          sessions.delete(sessionKey);
+        }
+      }
+    }
+    connSessions.delete(connId);
+  };
+
+  const getSubscribers = (sessionKey: string) => {
+    const normalized = sessionKey.trim().toLowerCase();
+    return sessions.get(normalized);
+  };
+
+  return { subscribe, unsubscribe, getSubscribers };
+}
+
 export type ChatEventBroadcast = (
   event: string,
   payload: unknown,
@@ -265,6 +330,7 @@ export type AgentEventHandlerOptions = {
   resolveSessionKeyForRun: (runId: string) => string | undefined;
   clearAgentRunContext: (runId: string) => void;
   toolEventRecipients: ToolEventRecipientRegistry;
+  chatSessionSubscribers?: ChatSessionSubscriberRegistry;
 };
 
 export function createAgentEventHandler({
@@ -276,7 +342,24 @@ export function createAgentEventHandler({
   resolveSessionKeyForRun,
   clearAgentRunContext,
   toolEventRecipients,
+  chatSessionSubscribers,
 }: AgentEventHandlerOptions) {
+  // Helper: broadcast chat events only to clients subscribed to the session.
+  // Falls back to global broadcast when no subscriber registry or no subscribers
+  // (e.g. TUI/node flows that don't use the registry).
+  const broadcastChatScoped = (
+    event: string,
+    sessionKey: string,
+    payload: unknown,
+    opts?: { dropIfSlow?: boolean },
+  ) => {
+    const subscribers = chatSessionSubscribers?.getSubscribers(sessionKey);
+    if (subscribers && subscribers.size > 0) {
+      broadcastToConnIds(event, payload, subscribers, opts);
+    } else {
+      broadcast(event, payload, opts);
+    }
+  };
   const emitChatDelta = (
     sessionKey: string,
     clientRunId: string,
@@ -312,7 +395,7 @@ export function createAgentEventHandler({
         timestamp: now,
       },
     };
-    broadcast("chat", payload, { dropIfSlow: true });
+    broadcastChatScoped("chat", sessionKey, payload, { dropIfSlow: true });
     nodeSendToSession(sessionKey, "chat", payload);
   };
 
@@ -352,7 +435,7 @@ export function createAgentEventHandler({
               }
             : undefined,
       };
-      broadcast("chat", payload);
+      broadcastChatScoped("chat", sessionKey, payload);
       nodeSendToSession(sessionKey, "chat", payload);
       return;
     }
@@ -363,7 +446,7 @@ export function createAgentEventHandler({
       state: "error" as const,
       errorMessage: error ? formatForLog(error) : undefined,
     };
-    broadcast("chat", payload);
+    broadcastChatScoped("chat", sessionKey, payload);
     nodeSendToSession(sessionKey, "chat", payload);
   };
 

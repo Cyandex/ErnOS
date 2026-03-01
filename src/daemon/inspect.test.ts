@@ -44,21 +44,21 @@ describe("findExtraGatewayServices (win32)", () => {
     expect(result).toEqual([]);
   });
 
-  it("collects only non-openclaw marker tasks from schtasks output", async () => {
+  it("collects only non-ernos marker tasks from schtasks output", async () => {
     execSchtasksMock.mockResolvedValueOnce({
       code: 0,
       stdout: [
-        "TaskName: OpenClaw Gateway",
-        "Task To Run: C:\\Program Files\\OpenClaw\\openclaw.exe gateway run",
+        "TaskName: ErnOS Gateway",
+        "Task To Run: C:\\Program Files\\ErnOS\\ernos.exe gateway run",
         "",
-        "TaskName: Clawdbot Legacy",
-        "Task To Run: C:\\clawdbot\\clawdbot.exe run",
+        "TaskName: ErnOS Legacy",
+        "Task To Run: C:\\ernos\\ernos.exe run",
         "",
         "TaskName: Other Task",
         "Task To Run: C:\\tools\\helper.exe",
         "",
-        "TaskName: MoltBot Legacy",
-        "Task To Run: C:\\moltbot\\moltbot.exe run",
+        "TaskName: ErnOS Legacy",
+        "Task To Run: C:\\ernos\\ernos.exe run",
         "",
       ].join("\n"),
       stderr: "",
@@ -68,19 +68,11 @@ describe("findExtraGatewayServices (win32)", () => {
     expect(result).toEqual([
       {
         platform: "win32",
-        label: "Clawdbot Legacy",
-        detail: "task: Clawdbot Legacy, run: C:\\clawdbot\\clawdbot.exe run",
+        label: "ErnOS Legacy",
+        detail: "task: ErnOS Legacy, run: C:\\ernos\\ernos.exe run",
         scope: "system",
-        marker: "clawdbot",
-        legacy: true,
-      },
-      {
-        platform: "win32",
-        label: "MoltBot Legacy",
-        detail: "task: MoltBot Legacy, run: C:\\moltbot\\moltbot.exe run",
-        scope: "system",
-        marker: "moltbot",
-        legacy: true,
+        marker: "ernos",
+        legacy: false,
       },
     ]);
   });

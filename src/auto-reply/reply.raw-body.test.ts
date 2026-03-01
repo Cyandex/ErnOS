@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { ErnOSConfig } from "../config/config.js";
 import { createTempHomeHarness, makeReplyConfig } from "./reply.test-harness.js";
 
 const agentMocks = vi.hoisted(() => ({
@@ -13,6 +13,7 @@ const agentMocks = vi.hoisted(() => ({
 vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
   runEmbeddedPiAgent: agentMocks.runEmbeddedPiAgent,
+  runWithObserverAudit: agentMocks.runEmbeddedPiAgent,
   queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
   resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
@@ -31,11 +32,11 @@ vi.mock("../web/session.js", () => ({
 
 import { getReplyFromConfig } from "./reply.js";
 
-const { withTempHome } = createTempHomeHarness({ prefix: "openclaw-rawbody-" });
+const { withTempHome } = createTempHomeHarness({ prefix: "ernos-rawbody-" });
 
 describe("RawBody directive parsing", () => {
   beforeEach(() => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "1");
+    vi.stubEnv("ERNOS_TEST_FAST", "1");
     agentMocks.runEmbeddedPiAgent.mockClear();
     agentMocks.loadModelCatalog.mockClear();
     agentMocks.loadModelCatalog.mockResolvedValue([
@@ -74,7 +75,7 @@ describe("RawBody directive parsing", () => {
       const res = await getReplyFromConfig(
         groupMessageCtx,
         {},
-        makeReplyConfig(home) as OpenClawConfig,
+        makeReplyConfig(home) as ErnOSConfig,
       );
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;

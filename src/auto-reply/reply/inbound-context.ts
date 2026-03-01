@@ -2,6 +2,8 @@ import { normalizeChatType } from "../../channels/chat-type.js";
 import { resolveConversationLabel } from "../../channels/conversation-label.js";
 import type { FinalizedMsgContext, MsgContext } from "../templating.js";
 import { normalizeInboundTextNewlines } from "./inbound-text.js";
+import { getUserThreatMeter } from "../../memory/user-threat.js";
+import { getSocialGraphManager } from "../../memory/social-graph.js";
 
 export type FinalizeInboundContextOptions = {
   forceBodyForAgent?: boolean;
@@ -118,6 +120,21 @@ export function finalizeInboundContext<T extends Record<string, unknown>>(
 
     normalized.MediaTypes = mediaTypesFinal;
     normalized.MediaType = mediaType ?? mediaTypesFinal[0] ?? DEFAULT_MEDIA_TYPE;
+  }
+
+  // Record metrics for Cognitive Depth (V5)
+  if (normalized.SenderId) {
+    try {
+      getSocialGraphManager().recordCoOccurrence([normalized.SenderId], normalized.ConversationLabel || "direct");
+      
+      // Basic sentiment check for threat meter (simple mock for demo)
+      const textLower = (normalized.BodyForAgent || "").toLowerCase();
+      if (textLower.includes("hate") || textLower.includes("stupid") || textLower.includes("kill") || textLower.includes("die")) {
+        getUserThreatMeter().recordThreat(normalized.SenderId, "25", "Aggressive language detected");
+      }
+    } catch (e) {
+      console.error("[Inbound Context] Failed recording cognitive metrics:", e);
+    }
   }
 
   return normalized as T & FinalizedMsgContext;

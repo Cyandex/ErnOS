@@ -240,12 +240,12 @@ export function buildServiceEnvironment(params: {
 }): Record<string, string | undefined> {
   const { env, port, token, launchdLabel } = params;
   const platform = params.platform ?? process.platform;
-  const profile = env.OPENCLAW_PROFILE;
+  const profile = env.ERNOS_PROFILE;
   const resolvedLaunchdLabel =
     launchdLabel || (platform === "darwin" ? resolveGatewayLaunchAgentLabel(profile) : undefined);
   const systemdUnit = `${resolveGatewaySystemdServiceName(profile)}.service`;
-  const stateDir = env.OPENCLAW_STATE_DIR;
-  const configPath = env.OPENCLAW_CONFIG_PATH;
+  const stateDir = env.ERNOS_STATE_DIR;
+  const configPath = env.ERNOS_CONFIG_PATH;
   // Keep a usable temp directory for supervised services even when the host env omits TMPDIR.
   const tmpDir = env.TMPDIR?.trim() || os.tmpdir();
   const proxyEnv = readServiceProxyEnvironment(env);
@@ -260,16 +260,16 @@ export function buildServiceEnvironment(params: {
     PATH: buildMinimalServicePath({ env }),
     ...proxyEnv,
     NODE_EXTRA_CA_CERTS: nodeCaCerts,
-    OPENCLAW_PROFILE: profile,
-    OPENCLAW_STATE_DIR: stateDir,
-    OPENCLAW_CONFIG_PATH: configPath,
-    OPENCLAW_GATEWAY_PORT: String(port),
-    OPENCLAW_GATEWAY_TOKEN: token,
-    OPENCLAW_LAUNCHD_LABEL: resolvedLaunchdLabel,
-    OPENCLAW_SYSTEMD_UNIT: systemdUnit,
-    OPENCLAW_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
-    OPENCLAW_SERVICE_KIND: GATEWAY_SERVICE_KIND,
-    OPENCLAW_SERVICE_VERSION: VERSION,
+    ERNOS_PROFILE: profile,
+    ERNOS_STATE_DIR: stateDir,
+    ERNOS_CONFIG_PATH: configPath,
+    ERNOS_GATEWAY_PORT: String(port),
+    ERNOS_GATEWAY_TOKEN: token,
+    ERNOS_LAUNCHD_LABEL: resolvedLaunchdLabel,
+    ERNOS_SYSTEMD_UNIT: systemdUnit,
+    ERNOS_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
+    ERNOS_SERVICE_KIND: GATEWAY_SERVICE_KIND,
+    ERNOS_SERVICE_VERSION: VERSION,
   };
 }
 
@@ -279,8 +279,8 @@ export function buildNodeServiceEnvironment(params: {
 }): Record<string, string | undefined> {
   const { env } = params;
   const platform = params.platform ?? process.platform;
-  const stateDir = env.OPENCLAW_STATE_DIR;
-  const configPath = env.OPENCLAW_CONFIG_PATH;
+  const stateDir = env.ERNOS_STATE_DIR;
+  const configPath = env.ERNOS_CONFIG_PATH;
   const tmpDir = env.TMPDIR?.trim() || os.tmpdir();
   const proxyEnv = readServiceProxyEnvironment(env);
   // On macOS, launchd services don't inherit the shell environment, so Node's undici/fetch
@@ -294,15 +294,15 @@ export function buildNodeServiceEnvironment(params: {
     PATH: buildMinimalServicePath({ env }),
     ...proxyEnv,
     NODE_EXTRA_CA_CERTS: nodeCaCerts,
-    OPENCLAW_STATE_DIR: stateDir,
-    OPENCLAW_CONFIG_PATH: configPath,
-    OPENCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
-    OPENCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-    OPENCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-    OPENCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-    OPENCLAW_LOG_PREFIX: "node",
-    OPENCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
-    OPENCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
-    OPENCLAW_SERVICE_VERSION: VERSION,
+    ERNOS_STATE_DIR: stateDir,
+    ERNOS_CONFIG_PATH: configPath,
+    ERNOS_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
+    ERNOS_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
+    ERNOS_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
+    ERNOS_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
+    ERNOS_LOG_PREFIX: "node",
+    ERNOS_SERVICE_MARKER: NODE_SERVICE_MARKER,
+    ERNOS_SERVICE_KIND: NODE_SERVICE_KIND,
+    ERNOS_SERVICE_VERSION: VERSION,
   };
 }

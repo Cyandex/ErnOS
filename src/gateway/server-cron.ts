@@ -76,7 +76,7 @@ export function buildGatewayCronService(params: {
 }): GatewayCronState {
   const cronLogger = getChildLogger({ module: "cron" });
   const storePath = resolveCronStorePath(params.cfg.cron?.store);
-  const cronEnabled = process.env.OPENCLAW_SKIP_CRON !== "1" && params.cfg.cron?.enabled !== false;
+  const cronEnabled = process.env.ERNOS_SKIP_CRON !== "1" && params.cfg.cron?.enabled !== false;
 
   const resolveCronAgent = (requested?: string | null) => {
     const runtimeConfig = loadConfig();
@@ -191,6 +191,15 @@ export function buildGatewayCronService(params: {
       });
     },
     runIsolatedAgentJob: async ({ job, message, abortSignal }) => {
+      // Execute builtin dream consolidation daemon before the agent turn
+      if (job.id === "builtin:dream-consolidation") {
+        try {
+          const { dreamDaemon } = await import("../cron/dream-consolidation.js");
+          await dreamDaemon.executeNightlyDream("default");
+        } catch (dreamErr) {
+          cronLogger.warn({ err: String(dreamErr) }, "dream-consolidation daemon execution failed");
+        }
+      }
       const { agentId, cfg: runtimeConfig } = resolveCronAgent(job.agentId);
       return await runCronIsolatedAgentTurn({
         cfg: runtimeConfig,
@@ -322,6 +331,46 @@ export function buildGatewayCronService(params: {
       }
     },
   });
+
+  // ── Built-in system cron jobs ──────────────────────────────────────
+  // Dream Consolidation: nightly optimization of the 5-tier memory system.
+  // Salt Rotation: monthly cryptographic salt rotation for PII hashing.
+  // These register idempotently — if a job with the same ID already exists,
+  // the CronService will skip the duplicate. We wrap in try/catch so a
+  // registration failure never blocks gateway startup.
+  const registerBuiltinJobs = async () => {
+    try {
+      const { dreamDaemon } = await import("../cron/dream-consolidation.js");
+      await cron.add({
+        id: "builtin:dream-consolidation",
+        name: "Dream Consolidation",
+        schedule: { kind: "cron", expr: "0 3 * * *", tz: "UTC" },
+        message: "Run nightly dream consolidation to optimize the 5-tier memory system.",
+        enabled: true,
+      } as any);
+      cronLogger.info("registered built-in cron: dream-consolidation (nightly 03:00 UTC)");
+    } catch (err) {
+      // Job may already exist (duplicate id) — that's fine.
+      cronLogger.debug({ err: String(err) }, "dream-consolidation cron registration skipped");
+    }
+
+    try {
+      const { saltRotator } = await import("../security/salt-rotation.js");
+      await cron.add({
+        id: "builtin:salt-rotation",
+        name: "Salt Rotation",
+        schedule: { kind: "cron", expr: "0 4 1 * *", tz: "UTC" },
+        message: "Run monthly cryptographic salt rotation for PII hashing.",
+        enabled: true,
+      } as any);
+      cronLogger.info("registered built-in cron: salt-rotation (monthly 04:00 UTC, 1st)");
+    } catch (err) {
+      cronLogger.debug({ err: String(err) }, "salt-rotation cron registration skipped");
+    }
+  };
+
+  // Fire-and-forget — don't block gateway startup
+  void registerBuiltinJobs();
 
   return { cron, storePath, cronEnabled };
 }

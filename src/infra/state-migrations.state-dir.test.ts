@@ -10,7 +10,7 @@ import {
 let tempRoot: string | null = null;
 
 async function makeTempRoot() {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "openclaw-state-dir-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ernos-state-dir-"));
   tempRoot = root;
   return root;
 }
@@ -25,28 +25,22 @@ afterEach(async () => {
 });
 
 describe("legacy state dir auto-migration", () => {
-  it("follows legacy symlink when it points at another legacy dir (clawdbot -> moltbot)", async () => {
+  it("skips migration when legacy dir is the same as target dir (post-rebrand)", async () => {
     const root = await makeTempRoot();
-    const legacySymlink = path.join(root, ".clawdbot");
-    const legacyDir = path.join(root, ".moltbot");
-
-    fs.mkdirSync(legacyDir, { recursive: true });
-    fs.writeFileSync(path.join(legacyDir, "marker.txt"), "ok", "utf-8");
-
-    const dirLinkType = process.platform === "win32" ? "junction" : "dir";
-    fs.symlinkSync(legacyDir, legacySymlink, dirLinkType);
+    // After rebrand, legacyDir === targetDir === ".ernos"
+    const targetDir = path.join(root, ".ernos");
+    fs.mkdirSync(targetDir, { recursive: true });
+    fs.writeFileSync(path.join(targetDir, "marker.txt"), "ok", "utf-8");
 
     const result = await autoMigrateLegacyStateDir({
       env: {} as NodeJS.ProcessEnv,
       homedir: () => root,
     });
 
-    expect(result.migrated).toBe(true);
-    expect(result.warnings).toEqual([]);
+    // Target already exists (it IS the legacy dir), so migration skips
+    expect(result.migrated).toBe(false);
 
-    const targetMarker = path.join(root, ".openclaw", "marker.txt");
-    expect(fs.readFileSync(targetMarker, "utf-8")).toBe("ok");
-    expect(fs.readFileSync(path.join(root, ".moltbot", "marker.txt"), "utf-8")).toBe("ok");
-    expect(fs.readFileSync(path.join(root, ".clawdbot", "marker.txt"), "utf-8")).toBe("ok");
+    // Marker file should still be there
+    expect(fs.readFileSync(path.join(targetDir, "marker.txt"), "utf-8")).toBe("ok");
   });
 });

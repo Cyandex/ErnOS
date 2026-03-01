@@ -1,5 +1,5 @@
 import AVFoundation
-import OpenClawKit
+import ErnOSKit
 import Foundation
 
 actor CameraController {
@@ -36,7 +36,7 @@ actor CameraController {
         }
     }
 
-    func snap(params: OpenClawCameraSnapParams) async throws -> (
+    func snap(params: ErnOSCameraSnapParams) async throws -> (
         format: String,
         base64: String,
         width: Int,
@@ -105,7 +105,7 @@ actor CameraController {
             height: res.heightPx)
     }
 
-    func clip(params: OpenClawCameraClipParams) async throws -> (
+    func clip(params: ErnOSCameraClipParams) async throws -> (
         format: String,
         base64: String,
         durationMs: Int,
@@ -157,9 +157,9 @@ actor CameraController {
         await Self.warmUpCaptureSession()
 
         let movURL = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-camera-\(UUID().uuidString).mov")
+            .appendingPathComponent("ernos-camera-\(UUID().uuidString).mov")
         let mp4URL = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-camera-\(UUID().uuidString).mp4")
+            .appendingPathComponent("ernos-camera-\(UUID().uuidString).mp4")
 
         defer {
             try? FileManager().removeItem(at: movURL)
@@ -217,7 +217,7 @@ actor CameraController {
     }
 
     private nonisolated static func pickCamera(
-        facing: OpenClawCameraFacing,
+        facing: ErnOSCameraFacing,
         deviceId: String?) -> AVCaptureDevice?
     {
         if let deviceId, !deviceId.isEmpty {

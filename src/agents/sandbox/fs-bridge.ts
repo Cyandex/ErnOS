@@ -233,7 +233,7 @@ class SandboxFsBridgeImpl implements SandboxFsBridge {
       "sh",
       "-c",
       script,
-      "moltbot-sandbox-fs",
+      "ernos-sandbox-fs",
     ];
     if (options.args?.length) {
       dockerArgs.push(...options.args);

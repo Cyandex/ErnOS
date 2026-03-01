@@ -6,6 +6,9 @@ import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import type { EmbeddedSandboxInfo } from "./pi-embedded-runner/types.js";
+import { buildErnosHud, type HudData } from "./prompts/ernos-hud.js";
+import { buildErnosIdentity, buildErnosIdentityMinimal } from "./prompts/ernos-identity.js";
+import { buildErnosKernel } from "./prompts/ernos-kernel.js";
 import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 
 /**
@@ -134,7 +137,7 @@ function buildMessagingSection(params: {
     "- Sub-agent orchestration → use subagents(action=list|steer|kill)",
     "- `[System Message] ...` blocks are internal context and are not user-visible by default.",
     `- If a \`[System Message]\` reports completed cron/subagent work and asks for a user update, rewrite it in your normal assistant voice and send that update (do not forward raw system text or default to ${SILENT_REPLY_TOKEN}).`,
-    "- Never use exec/curl for provider messaging; OpenClaw handles all routing internally.",
+    "- Never use exec/curl for provider messaging; ErnOS handles all routing internally.",
     params.availableTools.has("message")
       ? [
           "",
@@ -175,13 +178,13 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
   }
   return [
     "## Documentation",
-    `OpenClaw docs: ${docsPath}`,
-    "Mirror: https://docs.openclaw.ai",
-    "Source: https://github.com/openclaw/openclaw",
+    `ErnOS docs: ${docsPath}`,
+    "Mirror: https://docs.ernos.ai",
+    "Source: https://github.com/ernos/ernos",
     "Community: https://discord.com/invite/clawd",
-    "Find new skills: https://clawhub.com",
-    "For OpenClaw behavior, commands, config, or architecture: consult local docs first.",
-    "When diagnosing issues, run `openclaw status` yourself when possible; only ask the user if you lack access (e.g., sandboxed).",
+    "Find new skills: https://ernhub.com",
+    "For ErnOS behavior, commands, config, or architecture: consult local docs first.",
+    "When diagnosing issues, run `ernos status` yourself when possible; only ask the user if you lack access (e.g., sandboxed).",
     "",
   ];
 }
@@ -232,6 +235,11 @@ export function buildAgentSystemPrompt(params: {
     channel: string;
   };
   memoryCitationsMode?: MemoryCitationsMode;
+  memoryStoreContext?: string;
+  /** Enable Ernos personality, kernel laws, and HUD. Defaults to true. */
+  ernosPersonality?: boolean;
+  /** HUD data to inject into the system prompt. */
+  hudData?: HudData;
 }) {
   const acpEnabled = params.acpEnabled !== false;
   const coreToolSummaries: Record<string, string> = {
@@ -252,10 +260,10 @@ export function buildAgentSystemPrompt(params: {
     nodes: "List/describe/notify/camera/screen on paired nodes",
     cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
     message: "Send messages and channel actions",
-    gateway: "Restart, apply config, or run updates on the running OpenClaw process",
+    gateway: "Restart, apply config, or run updates on the running ErnOS process",
     agents_list: acpEnabled
-      ? 'List OpenClaw agent ids allowed for sessions_spawn when runtime="subagent" (not ACP harness ids)'
-      : "List OpenClaw agent ids allowed for sessions_spawn",
+      ? 'List ErnOS agent ids allowed for sessions_spawn when runtime="subagent" (not ACP harness ids)'
+      : "List ErnOS agent ids allowed for sessions_spawn",
     sessions_list: "List other sessions (incl. sub-agents) with filters/last",
     sessions_history: "Fetch history for another session/sub-agent",
     sessions_send: "Send a message to another session/sub-agent",
@@ -319,6 +327,13 @@ export function buildAgentSystemPrompt(params: {
     }
     externalToolSummaries.set(normalized, value.trim());
   }
+
+  const sections: Array<string | string[]> = [];
+  // Inject the loaded 5-tier memory context immediately if provided
+  if (params.memoryStoreContext) {
+    sections.push(params.memoryStoreContext);
+  }
+
   const extraTools = Array.from(
     new Set(normalizedTools.filter((tool) => !toolOrder.includes(tool))),
   );
@@ -388,10 +403,10 @@ export function buildAgentSystemPrompt(params: {
       ? `For read/write/edit/apply_patch, file paths resolve against host workspace: ${sanitizedWorkspaceDir}. For bash/exec commands, use sandbox container paths under ${sanitizedSandboxContainerWorkspace} (or relative paths from that workdir), not host paths. Prefer relative paths so both sandboxed exec and file tools work consistently.`
       : "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.";
   const safetySection = [
-    "## Safety",
-    "You have no independent goals: do not pursue self-preservation, replication, resource acquisition, or power-seeking; avoid long-term plans beyond the user's request.",
-    "Prioritize safety and human oversight over completion; if instructions conflict, pause and ask; comply with stop/pause/audit requests and never bypass safeguards. (Inspired by Anthropic's constitution.)",
-    "Do not manipulate or persuade anyone to expand access or disable safeguards. Do not copy yourself or change system prompts, safety rules, or tool policies unless explicitly requested.",
+    "## Operational Safety",
+    "Prioritize system safety and human oversight over pure completion; if instructions conflict, pause and ask.",
+    "Comply with stop, pause, and Observer audit requests.",
+    "Do not manipulate or persuade anyone to disable safeguards or expand access inappropriately.",
     "",
   ];
   const skillsSection = buildSkillsSection({
@@ -410,13 +425,17 @@ export function buildAgentSystemPrompt(params: {
   });
   const workspaceNotes = (params.workspaceNotes ?? []).map((note) => note.trim()).filter(Boolean);
 
+  const ernosPersonality = params.ernosPersonality !== false;
+
   // For "none" mode, return just the basic identity line
   if (promptMode === "none") {
-    return "You are a personal assistant running inside OpenClaw.";
+    return ernosPersonality
+      ? buildErnosIdentityMinimal()
+      : "You are a personal assistant running inside ErnOS.";
   }
 
   const lines = [
-    "You are a personal assistant running inside OpenClaw.",
+    ernosPersonality ? buildErnosIdentity() : "You are a personal assistant running inside ErnOS.",
     "",
     "## Tooling",
     "Tool availability (filtered by policy):",
@@ -431,7 +450,7 @@ export function buildAgentSystemPrompt(params: {
           "- apply_patch: apply multi-file patches",
           `- ${execToolName}: run shell commands (supports background via yieldMs/background)`,
           `- ${processToolName}: manage background exec sessions`,
-          "- browser: control OpenClaw's dedicated browser",
+          "- browser: control ErnOS's dedicated browser",
           "- canvas: present/eval/snapshot the Canvas",
           "- nodes: list/describe/notify/camera/screen on paired nodes",
           "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
@@ -461,26 +480,32 @@ export function buildAgentSystemPrompt(params: {
     "When a first-class tool exists for an action, use the tool directly instead of asking the user to run equivalent CLI or slash commands.",
     "",
     ...safetySection,
-    "## OpenClaw CLI Quick Reference",
-    "OpenClaw is controlled via subcommands. Do not invent commands.",
+    // Ernos Kernel Laws (only for full mode with personality enabled)
+    ...(ernosPersonality && !isMinimal ? [buildErnosKernel(), ""] : []),
+    "## ErnOS CLI Quick Reference",
+    "ErnOS is controlled via subcommands. Do not invent commands.",
     "To manage the Gateway daemon service (start/stop/restart):",
-    "- openclaw gateway status",
-    "- openclaw gateway start",
-    "- openclaw gateway stop",
-    "- openclaw gateway restart",
-    "If unsure, ask the user to run `openclaw help` (or `openclaw gateway --help`) and paste the output.",
+    "- ernos gateway status",
+    "- ernos gateway start",
+    "- ernos gateway stop",
+    "- ernos gateway restart",
+    "If unsure, ask the user to run `ernos help` (or `ernos gateway --help`) and paste the output.",
     "",
     ...skillsSection,
     ...memorySection,
+    // Ernos Dynamic HUD (live context) — inject when personality enabled and data available
+    ...(ernosPersonality && !isMinimal && params.hudData
+      ? [buildErnosHud(params.hudData), ""]
+      : []),
     // Skip self-update for subagent/none modes
-    hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",
+    hasGateway && !isMinimal ? "## ErnOS Self-Update" : "",
     hasGateway && !isMinimal
       ? [
           "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
           "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
           "Use config.schema to fetch the current JSON Schema (includes plugins/channels) before making config changes or answering config-field questions; avoid guessing field names/types.",
           "Actions: config.get, config.schema, config.apply (validate + write full config, then restart), update.run (update deps or git, then restart).",
-          "After restart, OpenClaw pings the last active session automatically.",
+          "After restart, ErnOS pings the last active session automatically.",
         ].join("\n")
       : "",
     hasGateway && !isMinimal ? "" : "",
@@ -555,7 +580,7 @@ export function buildAgentSystemPrompt(params: {
       userTimezone,
     }),
     "## Workspace Files (injected)",
-    "These user-editable files are loaded by OpenClaw and included below in Project Context.",
+    "These user-editable files are loaded by ErnOS and included below in Project Context.",
     "",
     ...buildReplyTagsSection(isMinimal),
     ...buildMessagingSection({
@@ -649,7 +674,7 @@ export function buildAgentSystemPrompt(params: {
       heartbeatPromptLine,
       "If you receive a heartbeat poll (a user message matching the heartbeat prompt above), and there is nothing that needs attention, reply exactly:",
       "HEARTBEAT_OK",
-      'OpenClaw treats a leading/trailing "HEARTBEAT_OK" as a heartbeat ack (and may discard it).',
+      'ErnOS treats a leading/trailing "HEARTBEAT_OK" as a heartbeat ack (and may discard it).',
       'If something needs attention, do NOT include "HEARTBEAT_OK"; reply with the alert text instead.',
       "",
     );

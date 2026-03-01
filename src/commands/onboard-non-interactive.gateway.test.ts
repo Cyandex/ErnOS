@@ -69,8 +69,8 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       throw new Error("temp home not initialized");
     }
     const stateDir = await fs.mkdtemp(path.join(tempHome, prefix));
-    process.env.OPENCLAW_STATE_DIR = stateDir;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    process.env.ERNOS_STATE_DIR = stateDir;
+    delete process.env.ERNOS_CONFIG_PATH;
     return stateDir;
   };
   const withStateDir = async (
@@ -87,25 +87,25 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
   beforeAll(async () => {
     envSnapshot = captureEnv([
       "HOME",
-      "OPENCLAW_STATE_DIR",
-      "OPENCLAW_CONFIG_PATH",
-      "OPENCLAW_SKIP_CHANNELS",
-      "OPENCLAW_SKIP_GMAIL_WATCHER",
-      "OPENCLAW_SKIP_CRON",
-      "OPENCLAW_SKIP_CANVAS_HOST",
-      "OPENCLAW_SKIP_BROWSER_CONTROL_SERVER",
-      "OPENCLAW_GATEWAY_TOKEN",
-      "OPENCLAW_GATEWAY_PASSWORD",
+      "ERNOS_STATE_DIR",
+      "ERNOS_CONFIG_PATH",
+      "ERNOS_SKIP_CHANNELS",
+      "ERNOS_SKIP_GMAIL_WATCHER",
+      "ERNOS_SKIP_CRON",
+      "ERNOS_SKIP_CANVAS_HOST",
+      "ERNOS_SKIP_BROWSER_CONTROL_SERVER",
+      "ERNOS_GATEWAY_TOKEN",
+      "ERNOS_GATEWAY_PASSWORD",
     ]);
-    process.env.OPENCLAW_SKIP_CHANNELS = "1";
-    process.env.OPENCLAW_SKIP_GMAIL_WATCHER = "1";
-    process.env.OPENCLAW_SKIP_CRON = "1";
-    process.env.OPENCLAW_SKIP_CANVAS_HOST = "1";
-    process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
-    delete process.env.OPENCLAW_GATEWAY_TOKEN;
-    delete process.env.OPENCLAW_GATEWAY_PASSWORD;
+    process.env.ERNOS_SKIP_CHANNELS = "1";
+    process.env.ERNOS_SKIP_GMAIL_WATCHER = "1";
+    process.env.ERNOS_SKIP_CRON = "1";
+    process.env.ERNOS_SKIP_CANVAS_HOST = "1";
+    process.env.ERNOS_SKIP_BROWSER_CONTROL_SERVER = "1";
+    delete process.env.ERNOS_GATEWAY_TOKEN;
+    delete process.env.ERNOS_GATEWAY_PASSWORD;
 
-    tempHome = await makeTempWorkspace("openclaw-onboard-");
+    tempHome = await makeTempWorkspace("ernos-onboard-");
     process.env.HOME = tempHome;
   });
 
@@ -119,7 +119,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
   it("writes gateway token auth into config", async () => {
     await withStateDir("state-noninteractive-", async (stateDir) => {
       const token = "tok_test_123";
-      const workspace = path.join(stateDir, "openclaw");
+      const workspace = path.join(stateDir, "ernos");
 
       await runNonInteractiveOnboarding(
         {
@@ -188,11 +188,11 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       return;
     }
     await withStateDir("state-lan-", async (stateDir) => {
-      process.env.OPENCLAW_STATE_DIR = stateDir;
-      process.env.OPENCLAW_CONFIG_PATH = path.join(stateDir, "openclaw.json");
+      process.env.ERNOS_STATE_DIR = stateDir;
+      process.env.ERNOS_CONFIG_PATH = path.join(stateDir, "ernos.json");
 
       const port = getPseudoPort(40_000);
-      const workspace = path.join(stateDir, "openclaw");
+      const workspace = path.join(stateDir, "ernos");
 
       await runNonInteractiveOnboarding(
         {

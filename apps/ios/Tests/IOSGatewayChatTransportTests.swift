@@ -1,6 +1,6 @@
-import OpenClawKit
+import ErnOSKit
 import Testing
-@testable import OpenClaw
+@testable import ErnOS
 
 @Suite struct IOSGatewayChatTransportTests {
     @Test func requestsFailFastWhenGatewayNotConnected() async {

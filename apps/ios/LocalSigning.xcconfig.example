@@ -1,14 +1,14 @@
 // Copy to LocalSigning.xcconfig for personal local signing overrides.
 // This file is only an example and should stay committed.
 
-OPENCLAW_CODE_SIGN_STYLE = Automatic
-OPENCLAW_DEVELOPMENT_TEAM = P5Z8X89DJL
+ERNOS_CODE_SIGN_STYLE = Automatic
+ERNOS_DEVELOPMENT_TEAM = P5Z8X89DJL
 
-OPENCLAW_APP_BUNDLE_ID = ai.openclaw.ios.test.mariano
-OPENCLAW_SHARE_BUNDLE_ID = ai.openclaw.ios.test.mariano.share
-OPENCLAW_WATCH_APP_BUNDLE_ID = ai.openclaw.ios.test.mariano.watchkitapp
-OPENCLAW_WATCH_EXTENSION_BUNDLE_ID = ai.openclaw.ios.test.mariano.watchkitapp.extension
+ERNOS_APP_BUNDLE_ID = ai.ernos.ios.test.mariano
+ERNOS_SHARE_BUNDLE_ID = ai.ernos.ios.test.mariano.share
+ERNOS_WATCH_APP_BUNDLE_ID = ai.ernos.ios.test.mariano.watchkitapp
+ERNOS_WATCH_EXTENSION_BUNDLE_ID = ai.ernos.ios.test.mariano.watchkitapp.extension
 
 // Leave empty with automatic signing.
-OPENCLAW_APP_PROFILE =
-OPENCLAW_SHARE_PROFILE =
+ERNOS_APP_PROFILE =
+ERNOS_SHARE_PROFILE =

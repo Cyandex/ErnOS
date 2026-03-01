@@ -4,6 +4,30 @@ import { html, type TemplateResult } from "lit";
 // All icons use currentColor for stroke
 
 export const icons = {
+  // Brand icon
+  sprout: html`
+    <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sprout-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#86efac" />
+          <stop offset="100%" stop-color="#166534" />
+        </linearGradient>
+      </defs>
+      <!-- Stem -->
+      <path d="M60 110 L60 50" stroke="url(#sprout-gradient)" stroke-width="8" stroke-linecap="round" />
+      <!-- Left Leaf -->
+      <path
+        d="M60 70 C40 70 20 60 20 40 C20 20 40 10 60 30 C60 50 60 70 60 70Z"
+        fill="url(#sprout-gradient)"
+      />
+      <!-- Right Leaf -->
+      <path
+        d="M60 60 C80 60 100 50 100 30 C100 10 80 0 60 20 C60 40 60 60 60 60Z"
+        fill="url(#sprout-gradient)"
+      />
+    </svg>
+  `,
+
   // Navigation icons
   messageSquare: html`
     <svg viewBox="0 0 24 24">
@@ -226,6 +250,20 @@ export const icons = {
       <path
         d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.076.874.54 1.02 1.02a2.5 2.5 0 1 0 3.237-3.237c-.48-.146-.944-.505-1.02-1.02a.98.98 0 0 1 .303-.917l1.526-1.526A2.402 2.402 0 0 1 11.998 2c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.236 3.236c-.464.18-.894.527-.967 1.02Z"
       />
+    </svg>
+  `,
+  speaker: html`
+    <svg viewBox="0 0 24 24">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
+  `,
+  speakerOff: html`
+    <svg viewBox="0 0 24 24">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <line x1="23" x2="17" y1="9" y2="15" />
+      <line x1="17" x2="23" y1="9" y2="15" />
     </svg>
   `,
 } as const;

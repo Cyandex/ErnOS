@@ -103,6 +103,27 @@ const LINE_RULES: LineRule[] = [
     message: "WebSocket connection to non-standard port",
     pattern: /new\s+WebSocket\s*\(\s*["']wss?:\/\/[^"']*:(\d+)/,
   },
+  // --- Security hardening: new rules ---
+  {
+    ruleId: "network-download",
+    severity: "warn",
+    message: "Runtime network download detected — possible payload staging",
+    pattern: /\bfetch\s*\(|https?\.get\s*\(|https?\.request\s*\(/,
+    requiresContext: /child_process|writeFile|createWriteStream/,
+  },
+  {
+    ruleId: "ssh-key-injection",
+    severity: "critical",
+    message: "SSH authorized_keys write detected — possible backdoor",
+    pattern: /authorized_keys|\.ssh\//,
+    requiresContext: /writeFile|appendFile|exec|spawn/,
+  },
+  {
+    ruleId: "cron-persistence",
+    severity: "critical",
+    message: "Crontab/systemd modification detected — possible persistence mechanism",
+    pattern: /crontab|systemctl\s+(enable|start)|launchctl\s+load/,
+  },
 ];
 
 const STANDARD_PORTS = new Set([80, 443, 8080, 8443, 3000]);

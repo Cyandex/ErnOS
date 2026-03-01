@@ -50,15 +50,15 @@ jobs:
 
       - name: Run root Dockerfile CLI smoke
         run: |
-          docker build -t openclaw-dockerfile-smoke:local -f Dockerfile .
-          docker run --rm --entrypoint sh openclaw-dockerfile-smoke:local -lc 'which openclaw && openclaw --version'
+          docker build -t ernos-dockerfile-smoke:local -f Dockerfile .
+          docker run --rm --entrypoint sh ernos-dockerfile-smoke:local -lc 'which ernos && ernos --version'
 
       - name: Run installer docker tests
         env:
-          CLAWDBOT_INSTALL_URL: https://openclaw.ai/install.sh
-          CLAWDBOT_INSTALL_CLI_URL: https://openclaw.ai/install-cli.sh
-          CLAWDBOT_NO_ONBOARD: "1"
-          CLAWDBOT_INSTALL_SMOKE_SKIP_CLI: "1"
-          CLAWDBOT_INSTALL_SMOKE_SKIP_NONROOT: ${{ github.event_name == 'pull_request' && '1' || '0' }}
-          CLAWDBOT_INSTALL_SMOKE_SKIP_PREVIOUS: "1"
+          ERNOS_INSTALL_URL: https://ernos.ai/install.sh
+          ERNOS_INSTALL_CLI_URL: https://ernos.ai/install-cli.sh
+          ERNOS_NO_ONBOARD: "1"
+          ERNOS_INSTALL_SMOKE_SKIP_CLI: "1"
+          ERNOS_INSTALL_SMOKE_SKIP_NONROOT: ${{ github.event_name == 'pull_request' && '1' || '0' }}
+          ERNOS_INSTALL_SMOKE_SKIP_PREVIOUS: "1"
         run: pnpm test:install:smoke

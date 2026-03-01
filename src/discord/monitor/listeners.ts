@@ -56,7 +56,7 @@ type DiscordReactionListenerParams = {
   logger: Logger;
 };
 
-const DISCORD_SLOW_LISTENER_THRESHOLD_MS = 30_000;
+const DISCORD_SLOW_LISTENER_THRESHOLD_MS = 7_200_000; // 2 hours — long autonomous tasks can run for extended periods
 const discordEventQueueLog = createSubsystemLogger("discord/event-queue");
 
 function logSlowDiscordListener(params: {

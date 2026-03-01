@@ -1,8 +1,4 @@
-import type {
-  AllowlistMatch,
-  ChannelGroupContext,
-  GroupToolPolicyConfig,
-} from "openclaw/plugin-sdk";
+import type { AllowlistMatch, ChannelGroupContext, GroupToolPolicyConfig } from "ernos/plugin-sdk";
 import { normalizeFeishuTarget } from "./targets.js";
 import type { FeishuConfig, FeishuGroupConfig } from "./types.js";
 

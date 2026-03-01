@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
-import { createOpenClawCodingTools } from "./pi-tools.js";
+import type { ErnOSConfig } from "../config/config.js";
+import { createErnOSCodingTools } from "./pi-tools.js";
 import {
   expectReadWriteEditTools,
   expectReadWriteTools,
@@ -23,7 +23,11 @@ describe("tools.fs.workspaceOnly", () => {
     await withUnsafeMountedSandboxHarness(async ({ sandboxRoot, agentRoot, sandbox }) => {
       await fs.writeFile(path.join(agentRoot, "secret.txt"), "shh", "utf8");
 
-      const tools = createOpenClawCodingTools({ sandbox, workspaceDir: sandboxRoot });
+      const tools = createErnOSCodingTools({
+        senderIsOwner: true,
+        sandbox,
+        workspaceDir: sandboxRoot,
+      });
       const { readTool, writeTool } = expectReadWriteTools(tools);
 
       const readResult = await readTool?.execute("t1", { path: "/agent/secret.txt" });
@@ -38,8 +42,13 @@ describe("tools.fs.workspaceOnly", () => {
     await withUnsafeMountedSandboxHarness(async ({ sandboxRoot, agentRoot, sandbox }) => {
       await fs.writeFile(path.join(agentRoot, "secret.txt"), "shh", "utf8");
 
-      const cfg = { tools: { fs: { workspaceOnly: true } } } as unknown as OpenClawConfig;
-      const tools = createOpenClawCodingTools({ sandbox, workspaceDir: sandboxRoot, config: cfg });
+      const cfg = { tools: { fs: { workspaceOnly: true } } } as unknown as ErnOSConfig;
+      const tools = createErnOSCodingTools({
+        senderIsOwner: true,
+        sandbox,
+        workspaceDir: sandboxRoot,
+        config: cfg,
+      });
       const { readTool, writeTool, editTool } = expectReadWriteEditTools(tools);
 
       await expect(readTool?.execute("t1", { path: "/agent/secret.txt" })).rejects.toThrow(
@@ -62,13 +71,14 @@ describe("tools.fs.workspaceOnly", () => {
 
   it("enforces apply_patch workspace-only in sandbox mounts by default", async () => {
     await withUnsafeMountedSandboxHarness(async ({ sandboxRoot, agentRoot, sandbox }) => {
-      const cfg: OpenClawConfig = {
+      const cfg: ErnOSConfig = {
         tools: {
           allow: ["read", "exec"],
           exec: { applyPatch: { enabled: true } },
         },
       };
-      const tools = createOpenClawCodingTools({
+      const tools = createErnOSCodingTools({
+        senderIsOwner: true,
         sandbox,
         workspaceDir: sandboxRoot,
         config: cfg,
@@ -98,13 +108,14 @@ describe("tools.fs.workspaceOnly", () => {
 
   it("allows apply_patch outside workspace root when explicitly disabled", async () => {
     await withUnsafeMountedSandboxHarness(async ({ sandboxRoot, agentRoot, sandbox }) => {
-      const cfg: OpenClawConfig = {
+      const cfg: ErnOSConfig = {
         tools: {
           allow: ["read", "exec"],
           exec: { applyPatch: { enabled: true, workspaceOnly: false } },
         },
       };
-      const tools = createOpenClawCodingTools({
+      const tools = createErnOSCodingTools({
+        senderIsOwner: true,
         sandbox,
         workspaceDir: sandboxRoot,
         config: cfg,

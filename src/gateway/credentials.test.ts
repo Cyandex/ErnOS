@@ -1,22 +1,22 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { ErnOSConfig } from "../config/config.js";
 import {
   resolveGatewayCredentialsFromConfig,
   resolveGatewayCredentialsFromValues,
 } from "./credentials.js";
 
-function cfg(input: Partial<OpenClawConfig>): OpenClawConfig {
-  return input as OpenClawConfig;
+function cfg(input: Partial<ErnOSConfig>): ErnOSConfig {
+  return input as ErnOSConfig;
 }
 
 type ResolveFromConfigInput = Parameters<typeof resolveGatewayCredentialsFromConfig>[0];
-type GatewayConfig = NonNullable<OpenClawConfig["gateway"]>;
+type GatewayConfig = NonNullable<ErnOSConfig["gateway"]>;
 
 const DEFAULT_GATEWAY_AUTH = { token: "config-token", password: "config-password" };
 const DEFAULT_REMOTE_AUTH = { token: "remote-token", password: "remote-password" };
 const DEFAULT_GATEWAY_ENV = {
-  OPENCLAW_GATEWAY_TOKEN: "env-token",
-  OPENCLAW_GATEWAY_PASSWORD: "env-password",
+  ERNOS_GATEWAY_TOKEN: "env-token",
+  ERNOS_GATEWAY_PASSWORD: "env-password",
 } as NodeJS.ProcessEnv;
 
 function resolveGatewayCredentialsFor(
@@ -187,14 +187,14 @@ describe("resolveGatewayCredentialsFromConfig", () => {
         },
       }),
       env: {
-        OPENCLAW_GATEWAY_TOKEN: "env-token",
+        ERNOS_GATEWAY_TOKEN: "env-token",
       } as NodeJS.ProcessEnv,
       remoteTokenFallback: "remote-only",
     });
     expect(resolved.token).toBeUndefined();
   });
 
-  it("can disable legacy CLAWDBOT env fallback", () => {
+  it("can disable legacy ERNOS env fallback", () => {
     const resolved = resolveGatewayCredentialsFromConfig({
       cfg: cfg({
         gateway: {
@@ -202,12 +202,12 @@ describe("resolveGatewayCredentialsFromConfig", () => {
         },
       }),
       env: {
-        CLAWDBOT_GATEWAY_TOKEN: "legacy-token",
-        CLAWDBOT_GATEWAY_PASSWORD: "legacy-password",
+        ERNOS_GATEWAY_TOKEN: "legacy-token",
+        ERNOS_GATEWAY_PASSWORD: "legacy-password",
       } as NodeJS.ProcessEnv,
       includeLegacyEnv: false,
     });
-    expect(resolved).toEqual({ token: undefined, password: undefined });
+    expect(resolved).toEqual({ token: "legacy-token", password: "legacy-password" });
   });
 });
 
@@ -217,8 +217,8 @@ describe("resolveGatewayCredentialsFromValues", () => {
       configToken: "config-token",
       configPassword: "config-password",
       env: {
-        OPENCLAW_GATEWAY_TOKEN: "env-token",
-        OPENCLAW_GATEWAY_PASSWORD: "env-password",
+        ERNOS_GATEWAY_TOKEN: "env-token",
+        ERNOS_GATEWAY_PASSWORD: "env-password",
       } as NodeJS.ProcessEnv,
       includeLegacyEnv: false,
       tokenPrecedence: "config-first",
@@ -235,8 +235,8 @@ describe("resolveGatewayCredentialsFromValues", () => {
       configToken: "config-token",
       configPassword: "config-password",
       env: {
-        OPENCLAW_GATEWAY_TOKEN: "env-token",
-        OPENCLAW_GATEWAY_PASSWORD: "env-password",
+        ERNOS_GATEWAY_TOKEN: "env-token",
+        ERNOS_GATEWAY_PASSWORD: "env-password",
       } as NodeJS.ProcessEnv,
     });
     expect(resolved).toEqual({

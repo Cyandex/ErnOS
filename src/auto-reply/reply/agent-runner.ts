@@ -15,6 +15,7 @@ import {
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import type { TypingMode } from "../../config/types.js";
+import { markAgentRunning, markAgentIdle } from "../../cron/autonomy-boot.js";
 import { emitAgentEvent } from "../../infra/agent-events.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import { generateSecureUuid } from "../../infra/secure-random.js";
@@ -371,6 +372,7 @@ export async function runReplyAgent(params: {
       cleanupTranscripts: true,
     });
   try {
+    markAgentRunning();
     const runStartedAt = Date.now();
     const runOutcome = await runAgentTurnWithFallback({
       commandBody,
@@ -746,6 +748,7 @@ export async function runReplyAgent(params: {
       runFollowupTurn,
     );
   } finally {
+    markAgentIdle();
     blockReplyPipeline?.stop();
     typing.markRunComplete();
     // Safety net: the dispatcher's onIdle callback normally fires

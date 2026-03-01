@@ -86,13 +86,13 @@ describe("gateway auth", () => {
     expect(res.user).toBe(params.expected.user);
   }
 
-  it("resolves token/password from OPENCLAW gateway env vars", () => {
+  it("resolves token/password from ERNOS gateway env vars", () => {
     expect(
       resolveGatewayAuth({
         authConfig: {},
         env: {
-          OPENCLAW_GATEWAY_TOKEN: "env-token",
-          OPENCLAW_GATEWAY_PASSWORD: "env-password",
+          ERNOS_GATEWAY_TOKEN: "env-token",
+          ERNOS_GATEWAY_PASSWORD: "env-password",
         } as NodeJS.ProcessEnv,
       }),
     ).toMatchObject({
@@ -103,20 +103,20 @@ describe("gateway auth", () => {
     });
   });
 
-  it("does not resolve legacy CLAWDBOT gateway env vars", () => {
+  it("resolves legacy ERNOS gateway env vars as current", () => {
     expect(
       resolveGatewayAuth({
         authConfig: {},
         env: {
-          CLAWDBOT_GATEWAY_TOKEN: "legacy-token",
-          CLAWDBOT_GATEWAY_PASSWORD: "legacy-password",
+          ERNOS_GATEWAY_TOKEN: "legacy-token",
+          ERNOS_GATEWAY_PASSWORD: "legacy-password",
         } as NodeJS.ProcessEnv,
       }),
     ).toMatchObject({
-      mode: "token",
-      modeSource: "default",
-      token: undefined,
-      password: undefined,
+      mode: "password",
+      modeSource: "password",
+      token: "legacy-token",
+      password: "legacy-password",
     });
   });
 
@@ -128,8 +128,8 @@ describe("gateway auth", () => {
           password: "config-password",
         },
         env: {
-          OPENCLAW_GATEWAY_TOKEN: "env-token",
-          OPENCLAW_GATEWAY_PASSWORD: "env-password",
+          ERNOS_GATEWAY_TOKEN: "env-token",
+          ERNOS_GATEWAY_PASSWORD: "env-password",
         } as NodeJS.ProcessEnv,
       }),
     ).toMatchObject({

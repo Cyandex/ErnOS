@@ -26,7 +26,7 @@ import {
   resolveDefaultModelForAgent,
   resolveThinkingDefault,
 } from "../agents/model-selection.js";
-import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
+import { runWithObserverAudit as runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { buildWorkspaceSkillSnapshot } from "../agents/skills.js";
 import { getSkillsSnapshotVersion } from "../agents/skills/refresh.js";
 import { resolveAgentTimeoutMs } from "../agents/timeout.js";
@@ -54,6 +54,7 @@ import {
   type SessionEntry,
   updateSessionStore,
 } from "../config/sessions.js";
+import { markUserActive, markAgentRunning, markAgentIdle } from "../cron/autonomy-boot.js";
 import {
   clearAgentRunContext,
   emitAgentEvent,
@@ -234,13 +235,14 @@ export async function agentCommand(
   }
 
   const cfg = loadConfig();
+  markAgentRunning();
   const agentIdOverrideRaw = opts.agentId?.trim();
   const agentIdOverride = agentIdOverrideRaw ? normalizeAgentId(agentIdOverrideRaw) : undefined;
   if (agentIdOverride) {
     const knownAgents = listAgentIds(cfg);
     if (!knownAgents.includes(agentIdOverride)) {
       throw new Error(
-        `Unknown agent id "${agentIdOverrideRaw}". Use "${formatCliCommand("openclaw agents list")}" to see configured agents.`,
+        `Unknown agent id "${agentIdOverrideRaw}". Use "${formatCliCommand("ernos agents list")}" to see configured agents.`,
       );
     }
   }
@@ -823,5 +825,8 @@ export async function agentCommand(
     });
   } finally {
     clearAgentRunContext(runId);
+    // Mark agent as idle so autonomy can resume. This also resets the
+    // idle timestamp — autonomy waits from when processing FINISHES.
+    markAgentIdle();
   }
 }

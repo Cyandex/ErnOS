@@ -13,7 +13,7 @@ import path from "node:path";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
 import type { ChannelId } from "../channels/plugins/types.js";
-import type { OpenClawConfig } from "../config/config.js";
+import type { ErnOSConfig } from "../config/config.js";
 import type {
   TtsConfig,
   TtsAutoMode,
@@ -22,7 +22,7 @@ import type {
   TtsModelOverrideConfig,
 } from "../config/types.tts.js";
 import { logVerbose } from "../globals.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredErnOSTmpDir } from "../infra/tmp-ernos-dir.js";
 import { stripMarkdown } from "../line/markdown-to-line.js";
 import { isVoiceCompatibleAudio } from "../media/audio.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
@@ -39,13 +39,14 @@ import {
   parseTtsDirectives,
   scheduleCleanup,
   summarizeText,
+  kokoroNativeTTS,
 } from "./tts-core.js";
 export { OPENAI_TTS_MODELS, OPENAI_TTS_VOICES } from "./tts-core.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_TTS_MAX_LENGTH = 1500;
 const DEFAULT_TTS_SUMMARIZE = true;
-const DEFAULT_MAX_TEXT_LENGTH = 4096;
+const DEFAULT_MAX_TEXT_LENGTH = 0; // 0 = unlimited (Kokoro/local providers have no char limit)
 
 const DEFAULT_ELEVENLABS_BASE_URL = "https://api.elevenlabs.io";
 const DEFAULT_ELEVENLABS_VOICE_ID = "pMsXgVXv3BLzUgSXRplE";
@@ -112,8 +113,13 @@ export type ResolvedTtsConfig = {
   };
   openai: {
     apiKey?: string;
+    baseUrl?: string;
     model: string;
     voice: string;
+  };
+  kokoro: {
+    voice?: string;
+    speed?: number;
   };
   edge: {
     enabled: boolean;
@@ -252,7 +258,7 @@ function resolveModelOverridePolicy(
   };
 }
 
-export function resolveTtsConfig(cfg: OpenClawConfig): ResolvedTtsConfig {
+export function resolveTtsConfig(cfg: ErnOSConfig): ResolvedTtsConfig {
   const raw: TtsConfig = cfg.messages?.tts ?? {};
   const providerSource = raw.provider ? "config" : "default";
   const edgeOutputFormat = raw.edge?.outputFormat?.trim();
@@ -287,8 +293,13 @@ export function resolveTtsConfig(cfg: OpenClawConfig): ResolvedTtsConfig {
     },
     openai: {
       apiKey: raw.openai?.apiKey,
+      baseUrl: raw.openai?.baseUrl?.trim(),
       model: raw.openai?.model ?? DEFAULT_OPENAI_MODEL,
       voice: raw.openai?.voice ?? DEFAULT_OPENAI_VOICE,
+    },
+    kokoro: {
+      voice: raw.kokoro?.voice,
+      speed: raw.kokoro?.speed,
     },
     edge: {
       enabled: raw.edge?.enabled ?? true,
@@ -313,7 +324,7 @@ export function resolveTtsPrefsPath(config: ResolvedTtsConfig): string {
   if (config.prefsPath?.trim()) {
     return resolveUserPath(config.prefsPath.trim());
   }
-  const envPath = process.env.OPENCLAW_TTS_PREFS?.trim();
+  const envPath = process.env.ERNOS_TTS_PREFS?.trim();
   if (envPath) {
     return resolveUserPath(envPath);
   }
@@ -347,7 +358,7 @@ export function resolveTtsAutoMode(params: {
   return params.config.auto;
 }
 
-export function buildTtsSystemPromptHint(cfg: OpenClawConfig): string | undefined {
+export function buildTtsSystemPromptHint(cfg: ErnOSConfig): string | undefined {
   const config = resolveTtsConfig(cfg);
   const prefsPath = resolveTtsPrefsPath(config);
   const autoMode = resolveTtsAutoMode({ config, prefsPath });
@@ -503,12 +514,20 @@ export function resolveTtsApiKey(
     return config.elevenlabs.apiKey || process.env.ELEVENLABS_API_KEY || process.env.XI_API_KEY;
   }
   if (provider === "openai") {
-    return config.openai.apiKey || process.env.OPENAI_API_KEY;
+    // Local OpenAI-compatible servers (e.g. Kokoro) don't need a real API key.
+    // If a custom baseUrl is configured, treat it as authenticated.
+    const key = config.openai.apiKey || process.env.OPENAI_API_KEY;
+    if (key) return key;
+    if (config.openai.baseUrl) return "local";
+    return undefined;
+  }
+  if (provider === "kokoro") {
+    return "local";
   }
   return undefined;
 }
 
-export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge"] as const;
+export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge", "kokoro"] as const;
 
 export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
   return [primary, ...TTS_PROVIDERS.filter((provider) => provider !== primary)];
@@ -517,6 +536,10 @@ export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
 export function isTtsProviderConfigured(config: ResolvedTtsConfig, provider: TtsProvider): boolean {
   if (provider === "edge") {
     return config.edge.enabled;
+  }
+  if (provider === "kokoro") {
+    // Kokoro runs locally without an API key
+    return true;
   }
   return Boolean(resolveTtsApiKey(config, provider));
 }
@@ -531,7 +554,7 @@ function formatTtsProviderError(provider: TtsProvider, err: unknown): string {
 
 export async function textToSpeech(params: {
   text: string;
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   prefsPath?: string;
   channel?: string;
   overrides?: TtsDirectiveOverrides;
@@ -541,7 +564,7 @@ export async function textToSpeech(params: {
   const channelId = resolveChannelId(params.channel);
   const output = resolveOutputFormat(channelId);
 
-  if (params.text.length > config.maxTextLength) {
+  if (config.maxTextLength > 0 && params.text.length > config.maxTextLength) {
     return {
       success: false,
       error: `Text too long (${params.text.length} chars, max ${config.maxTextLength})`,
@@ -551,7 +574,11 @@ export async function textToSpeech(params: {
   const userProvider = getTtsProvider(config, prefsPath);
   const overrideProvider = params.overrides?.provider;
   const provider = overrideProvider ?? userProvider;
-  const providers = resolveTtsProviderOrder(provider);
+  // When the provider was explicitly set in config (not defaulted), don't fall back
+  // to other providers. This prevents Kokoro/am_michael from silently falling back
+  // to Edge/Microsoft when the local TTS server is temporarily unreachable.
+  const providers =
+    config.providerSource === "config" ? [provider] : resolveTtsProviderOrder(provider);
 
   const errors: string[] = [];
 
@@ -564,7 +591,7 @@ export async function textToSpeech(params: {
           continue;
         }
 
-        const tempRoot = resolvePreferredOpenClawTmpDir();
+        const tempRoot = resolvePreferredErnOSTmpDir();
         mkdirSync(tempRoot, { recursive: true, mode: 0o700 });
         const tempDir = mkdtempSync(path.join(tempRoot, "tts-"));
         let edgeOutputFormat = resolveEdgeOutputFormat(config);
@@ -628,10 +655,13 @@ export async function textToSpeech(params: {
         };
       }
 
-      const apiKey = resolveTtsApiKey(config, provider);
-      if (!apiKey) {
-        errors.push(`${provider}: no API key`);
-        continue;
+      let apiKey: string | undefined;
+      if (provider !== "kokoro") {
+        apiKey = resolveTtsApiKey(config, provider);
+        if (!apiKey) {
+          errors.push(`${provider}: no API key`);
+          continue;
+        }
       }
 
       let audioBuffer: Buffer;
@@ -647,7 +677,7 @@ export async function textToSpeech(params: {
         const languageOverride = params.overrides?.elevenlabs?.languageCode;
         audioBuffer = await elevenLabsTTS({
           text: params.text,
-          apiKey,
+          apiKey: apiKey!,
           baseUrl: config.elevenlabs.baseUrl,
           voiceId: voiceIdOverride ?? config.elevenlabs.voiceId,
           modelId: modelIdOverride ?? config.elevenlabs.modelId,
@@ -658,12 +688,35 @@ export async function textToSpeech(params: {
           voiceSettings,
           timeoutMs: config.timeoutMs,
         });
+      } else if (provider === "kokoro") {
+        const tempRoot = resolvePreferredErnOSTmpDir();
+        mkdirSync(tempRoot, { recursive: true, mode: 0o700 });
+        const tempDir = mkdtempSync(path.join(tempRoot, "tts-"));
+        const audioPath = path.join(tempDir, `voice-${Date.now()}.wav`);
+
+        await kokoroNativeTTS({
+          text: params.text,
+          outputPath: audioPath,
+          config: config.kokoro,
+        });
+
+        scheduleCleanup(tempDir);
+
+        return {
+          success: true,
+          audioPath,
+          latencyMs: Date.now() - providerStart,
+          provider,
+          outputFormat: "wav",
+          voiceCompatible: true,
+        };
       } else {
         const openaiModelOverride = params.overrides?.openai?.model;
         const openaiVoiceOverride = params.overrides?.openai?.voice;
         audioBuffer = await openaiTTS({
           text: params.text,
-          apiKey,
+          apiKey: apiKey!,
+          baseUrl: config.openai.baseUrl,
           model: openaiModelOverride ?? config.openai.model,
           voice: openaiVoiceOverride ?? config.openai.voice,
           responseFormat: output.openai,
@@ -673,7 +726,7 @@ export async function textToSpeech(params: {
 
       const latencyMs = Date.now() - providerStart;
 
-      const tempRoot = resolvePreferredOpenClawTmpDir();
+      const tempRoot = resolvePreferredErnOSTmpDir();
       mkdirSync(tempRoot, { recursive: true, mode: 0o700 });
       const tempDir = mkdtempSync(path.join(tempRoot, "tts-"));
       const audioPath = path.join(tempDir, `voice-${Date.now()}${output.extension}`);
@@ -701,13 +754,13 @@ export async function textToSpeech(params: {
 
 export async function textToSpeechTelephony(params: {
   text: string;
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   prefsPath?: string;
 }): Promise<TtsTelephonyResult> {
   const config = resolveTtsConfig(params.cfg);
   const prefsPath = params.prefsPath ?? resolveTtsPrefsPath(config);
 
-  if (params.text.length > config.maxTextLength) {
+  if (config.maxTextLength > 0 && params.text.length > config.maxTextLength) {
     return {
       success: false,
       error: `Text too long (${params.text.length} chars, max ${config.maxTextLength})`,
@@ -763,6 +816,7 @@ export async function textToSpeechTelephony(params: {
       const audioBuffer = await openaiTTS({
         text: params.text,
         apiKey,
+        baseUrl: config.openai.baseUrl,
         model: config.openai.model,
         voice: config.openai.voice,
         responseFormat: output.format,
@@ -790,7 +844,7 @@ export async function textToSpeechTelephony(params: {
 
 export async function maybeApplyTtsToPayload(params: {
   payload: ReplyPayload;
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   channel?: string;
   kind?: "tool" | "block" | "final";
   inboundAudio?: boolean;
@@ -872,7 +926,7 @@ export async function maybeApplyTtsToPayload(params: {
         });
         textForAudio = summary.summary;
         wasSummarized = true;
-        if (textForAudio.length > config.maxTextLength) {
+        if (config.maxTextLength > 0 && textForAudio.length > config.maxTextLength) {
           logVerbose(
             `TTS: summary exceeded hard limit (${textForAudio.length} > ${config.maxTextLength}); truncating.`,
           );
@@ -887,6 +941,47 @@ export async function maybeApplyTtsToPayload(params: {
   }
 
   textForAudio = stripMarkdown(textForAudio).trim(); // strip markdown for TTS (### → "hashtag" etc.)
+
+  // ─── TTS Symbol Cleanup ─────────────────────────────────────────────
+  // Remove characters that TTS engines read aloud as their names
+  // (e.g. Kokoro saying "hashtag", "asterisk", "tilde", "underscore", emoji names)
+
+  // 1. Strip emojis (Unicode emoji ranges + variation selectors + ZWJ sequences)
+  textForAudio = textForAudio.replace(
+    /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu,
+    "",
+  );
+
+  // 2. Strip Discord mentions (<@123456>, <#channel>, <@&role>) → keep nothing or "someone"
+  textForAudio = textForAudio.replace(/<@!?\d+>/g, "");
+  textForAudio = textForAudio.replace(/<#\d+>/g, "");
+  textForAudio = textForAudio.replace(/<@&\d+>/g, "");
+
+  // 3. Strip Discord spoiler syntax ||text|| → text
+  textForAudio = textForAudio.replace(/\|\|(.+?)\|\|/g, "$1");
+
+  // 4. Strip code fence language tags (```typescript, ```python etc.)
+  textForAudio = textForAudio.replace(/```\w*\n?/g, "");
+
+  // 5. Strip bullet markers and list prefixes (- , • , * at line start, numbered lists)
+  textForAudio = textForAudio.replace(/^[\s]*[-•*]\s+/gm, "");
+  textForAudio = textForAudio.replace(/^\s*\d+[.)]\s+/gm, "");
+
+  // 6. Strip stray double-asterisks that survive the bold regex (unpaired/multiline bold markers)
+  textForAudio = textForAudio.replace(/\*{2,}/g, "");
+
+  // 7. Strip leftover markdown/formatting symbols that TTS reads aloud
+  //    Covers: # * ~ ` | > < > [ ] { } ( ) \ ^ = +
+  textForAudio = textForAudio.replace(/[#*~`|>\\{}^=+]/g, "");
+  textForAudio = textForAudio.replace(/[<>\[\]]/g, "");
+
+  // 7. Replace underscores with spaces (common in identifiers like user_id → "user id")
+  textForAudio = textForAudio.replace(/_/g, " ");
+
+  // 8. Collapse multiple spaces and trim lines
+  textForAudio = textForAudio.replace(/[ \t]{2,}/g, " ");
+  textForAudio = textForAudio.replace(/\n{3,}/g, "\n\n");
+  textForAudio = textForAudio.trim();
   if (textForAudio.length < 10) {
     return nextPayload;
   }

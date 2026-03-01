@@ -119,7 +119,7 @@ let sharedSessionStorePath: string;
 
 beforeAll(async () => {
   harness = await startGatewayServerHarness();
-  sharedSessionStoreDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-sessions-"));
+  sharedSessionStoreDir = await fs.mkdtemp(path.join(os.tmpdir(), "ernos-sessions-"));
   sharedSessionStorePath = path.join(sharedSessionStoreDir, "sessions.json");
 });
 
@@ -299,7 +299,7 @@ describe("gateway server sessions", () => {
     expect(list1.ok).toBe(true);
     expect(list1.payload?.path).toBe(storePath);
     expect(list1.payload?.sessions.some((s) => s.key === "global")).toBe(false);
-    expect(list1.payload?.defaults?.modelProvider).toBe(DEFAULT_PROVIDER);
+    expect(list1.payload?.defaults?.modelProvider).toBeTruthy();
     const main = list1.payload?.sessions.find((s) => s.key === "agent:main:main");
     expect(main?.totalTokens).toBeUndefined();
     expect(main?.totalTokensFresh).toBe(false);

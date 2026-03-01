@@ -10,6 +10,7 @@ vi.mock("../../agents/pi-embedded.js", () => ({
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
   isEmbeddedPiRunStreaming: vi.fn().mockReturnValue(false),
   resolveEmbeddedSessionLane: vi.fn().mockReturnValue("session:session-key"),
+  runWithObserverAudit: vi.fn(),
 }));
 
 vi.mock("../../config/sessions.js", () => ({

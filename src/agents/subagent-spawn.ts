@@ -23,7 +23,7 @@ import {
   resolveMainSessionAlias,
 } from "./tools/sessions-helpers.js";
 
-export const SUBAGENT_SPAWN_MODES = ["run", "session"] as const;
+export const SUBAGENT_SPAWN_MODES = ["run", "session", "competitive", "fan_out"] as const;
 export type SpawnSubagentMode = (typeof SUBAGENT_SPAWN_MODES)[number];
 
 export type SpawnSubagentParams = {
@@ -88,6 +88,10 @@ function resolveSpawnMode(params: {
   if (params.requestedMode === "run" || params.requestedMode === "session") {
     return params.requestedMode;
   }
+  // Swarm modes: pass through so the coordinator can handle them.
+  if (params.requestedMode === "competitive" || params.requestedMode === "fan_out") {
+    return params.requestedMode;
+  }
   // Thread-bound spawns should default to persistent sessions.
   return params.threadRequested ? "session" : "run";
 }
@@ -131,7 +135,7 @@ async function ensureThreadBindingForSubagentSpawn(params: {
         childSessionKey: params.childSessionKey,
         agentId: params.agentId,
         label: params.label,
-        mode: params.mode,
+        mode: params.mode as "run" | "session",
         requester: params.requester,
         threadRequested: true,
       },
@@ -497,7 +501,7 @@ export async function spawnSubagentDirect(
     model: resolvedModel,
     runTimeoutSeconds,
     expectsCompletionMessage,
-    spawnMode,
+    spawnMode: spawnMode as "run" | "session" | undefined,
   });
 
   if (hookRunner?.hasHooks("subagent_spawned")) {
@@ -515,7 +519,7 @@ export async function spawnSubagentDirect(
             threadId: requesterOrigin?.threadId,
           },
           threadRequested: requestThreadBinding,
-          mode: spawnMode,
+          mode: spawnMode as "run" | "session",
         },
         {
           runId: childRunId,

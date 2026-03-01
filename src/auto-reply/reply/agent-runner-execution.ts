@@ -11,7 +11,7 @@ import {
   isTransientHttpError,
   sanitizeUserFacingText,
 } from "../../agents/pi-embedded-helpers.js";
-import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
+import { runWithObserverAudit as runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import {
   resolveGroupSessionKey,
   resolveSessionTranscriptPath,
@@ -318,7 +318,7 @@ export async function runAgentTurnWithFallback(params: {
             abortSignal: params.opts?.abortSignal,
             blockReplyBreak: params.resolvedBlockStreamingBreak,
             blockReplyChunking: params.blockReplyChunking,
-            onPartialReply: async (payload) => {
+            onPartialReply: async (payload: any) => {
               const textForTyping = await handlePartialForTyping(payload);
               if (!params.opts?.onPartialReply || textForTyping === undefined) {
                 return;
@@ -334,7 +334,7 @@ export async function runAgentTurnWithFallback(params: {
             },
             onReasoningStream:
               params.typingSignals.shouldStartOnReasoning || params.opts?.onReasoningStream
-                ? async (payload) => {
+                ? async (payload: any) => {
                     await params.typingSignals.signalReasoningDelta();
                     await params.opts?.onReasoningStream?.({
                       text: payload.text,
@@ -343,7 +343,7 @@ export async function runAgentTurnWithFallback(params: {
                   }
                 : undefined,
             onReasoningEnd: params.opts?.onReasoningEnd,
-            onAgentEvent: async (evt) => {
+            onAgentEvent: async (evt: any) => {
               // Signal run start only after the embedded agent emits real activity.
               const hasLifecyclePhase =
                 evt.stream === "lifecycle" && typeof evt.data.phase === "string";
@@ -397,7 +397,7 @@ export async function runAgentTurnWithFallback(params: {
                   // Serialize tool result delivery to preserve message ordering.
                   // Without this, concurrent tool callbacks race through typing signals
                   // and message sends, causing out-of-order delivery to the user.
-                  // See: https://github.com/openclaw/openclaw/issues/11044
+                  // See: https://github.com/ernos/ernos/issues/11044
                   let toolResultChain: Promise<void> = Promise.resolve();
                   return (payload: ReplyPayload) => {
                     toolResultChain = toolResultChain
@@ -563,6 +563,9 @@ export async function runAgentTurnWithFallback(params: {
         continue;
       }
 
+      if (err instanceof Error && err.stack) {
+        defaultRuntime.error(`Embedded agent stack trace:\n${err.stack}`);
+      }
       defaultRuntime.error(`Embedded agent failed before reply: ${message}`);
       const safeMessage = isTransientHttp
         ? sanitizeUserFacingText(message, { errorContext: true })
@@ -572,7 +575,7 @@ export async function runAgentTurnWithFallback(params: {
         ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
         : isRoleOrderingError
           ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: openclaw logs --follow`;
+          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: ernos logs --follow`;
 
       return {
         kind: "final",

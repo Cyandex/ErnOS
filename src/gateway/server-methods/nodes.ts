@@ -214,8 +214,8 @@ async function maybeSendNodeWakeNudge(nodeId: string): Promise<NodeWakeNudgeAtte
       auth: auth.value,
       registration,
       nodeId,
-      title: "OpenClaw needs a quick reopen",
-      body: "Tap to reopen OpenClaw and restore the node connection.",
+      title: "ErnOS needs a quick reopen",
+      body: "Tap to reopen ErnOS and restore the node connection.",
     });
     if (!result.ok) {
       return withDuration({

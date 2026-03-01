@@ -1,17 +1,17 @@
-import type { OpenClawConfig } from "../config/config.js";
+import type { ErnOSConfig } from "../config/config.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { ensureModelAllowlistEntry } from "./model-allowlist.js";
 
 export async function applyDefaultModelChoice(params: {
-  config: OpenClawConfig;
+  config: ErnOSConfig;
   setDefaultModel: boolean;
   defaultModel: string;
-  applyDefaultConfig: (config: OpenClawConfig) => OpenClawConfig;
-  applyProviderConfig: (config: OpenClawConfig) => OpenClawConfig;
+  applyDefaultConfig: (config: ErnOSConfig) => ErnOSConfig;
+  applyProviderConfig: (config: ErnOSConfig) => ErnOSConfig;
   noteDefault?: string;
   noteAgentModel: (model: string) => Promise<void>;
   prompter: WizardPrompter;
-}): Promise<{ config: OpenClawConfig; agentModelOverride?: string }> {
+}): Promise<{ config: ErnOSConfig; agentModelOverride?: string }> {
   if (params.setDefaultModel) {
     const next = params.applyDefaultConfig(params.config);
     if (params.noteDefault) {

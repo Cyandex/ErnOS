@@ -11,7 +11,7 @@ import {
   CHANNEL_MESSAGE_ACTION_NAMES,
   type ChannelMessageActionName,
 } from "../../channels/plugins/types.js";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { ErnOSConfig } from "../../config/config.js";
 import { loadConfig } from "../../config/config.js";
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES } from "../../gateway/protocol/client-info.js";
 import { getToolResult, runMessageAction } from "../../infra/outbound/message-action-runner.js";
@@ -433,7 +433,7 @@ const MessageToolSchema = buildMessageToolSchemaFromActions(AllMessageActions, {
 type MessageToolOptions = {
   agentAccountId?: string;
   agentSessionKey?: string;
-  config?: OpenClawConfig;
+  config?: ErnOSConfig;
   currentChannelId?: string;
   currentChannelProvider?: string;
   currentThreadTs?: string;
@@ -443,10 +443,12 @@ type MessageToolOptions = {
   sandboxRoot?: string;
   requireExplicitTarget?: boolean;
   requesterSenderId?: string;
+  /** Discord guild ID from session context — auto-injected as guildId fallback. */
+  groupSpace?: string;
 };
 
 function resolveMessageToolSchemaActions(params: {
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   currentChannelProvider?: string;
   currentChannelId?: string;
 }): string[] {
@@ -468,7 +470,7 @@ function resolveMessageToolSchemaActions(params: {
 }
 
 function resolveIncludeComponents(params: {
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   currentChannelProvider?: string;
 }): boolean {
   const currentChannel = normalizeMessageChannel(params.currentChannelProvider);
@@ -480,7 +482,7 @@ function resolveIncludeComponents(params: {
 }
 
 function buildMessageToolSchema(params: {
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   currentChannelProvider?: string;
   currentChannelId?: string;
 }) {
@@ -536,7 +538,7 @@ function filterActionsForContext(params: {
 }
 
 function buildMessageToolDescription(options?: {
-  config?: OpenClawConfig;
+  config?: ErnOSConfig;
   currentChannel?: string;
   currentChannelId?: string;
 }): string {
@@ -600,6 +602,13 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
       }
       // Shallow-copy so we don't mutate the original event args (used for logging/dedup).
       const params = { ...(args as Record<string, unknown>) };
+
+      // Auto-inject guildId from session context when the LLM doesn't provide it.
+      // This prevents 'guildId required' errors for guild actions called from DMs
+      // or contexts where the LLM doesn't know the guild ID.
+      if (!params.guildId && options?.groupSpace) {
+        params.guildId = options.groupSpace;
+      }
 
       // Strip reasoning tags from text fields — models may include <think>…</think>
       // in tool arguments, and the messaging tool send path has no other tag filtering.

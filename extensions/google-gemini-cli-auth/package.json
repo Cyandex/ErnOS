@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/google-gemini-cli-auth",
+  "name": "@ernos/google-gemini-cli-auth",
   "version": "2026.2.27",
   "private": true,
-  "description": "OpenClaw Gemini CLI OAuth provider plugin",
+  "description": "ErnOS Gemini CLI OAuth provider plugin",
   "type": "module",
-  "openclaw": {
+  "ernos": {
     "extensions": [
       "./index.ts"
     ]

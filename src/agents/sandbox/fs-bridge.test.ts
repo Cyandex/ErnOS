@@ -39,12 +39,12 @@ function findCallByScriptFragment(fragment: string) {
 function createSandbox(overrides?: Partial<SandboxContext>): SandboxContext {
   return createSandboxTestContext({
     overrides: {
-      containerName: "moltbot-sbx-test",
+      containerName: "ernos-sbx-test",
       ...overrides,
     },
     dockerOverrides: {
-      image: "moltbot-sandbox:bookworm-slim",
-      containerPrefix: "moltbot-sbx-",
+      image: "ernos-sandbox:bookworm-slim",
+      containerPrefix: "ernos-sbx-",
     },
   });
 }
@@ -153,7 +153,7 @@ describe("sandbox fs bridge shell compatibility", () => {
 
     const args = mockedExecDockerRaw.mock.calls.at(-1)?.[0] ?? [];
     expect(args).toEqual(
-      expect.arrayContaining(["moltbot-sbx-test", "sh", "-c", 'set -eu; cat -- "$1"']),
+      expect.arrayContaining(["ernos-sbx-test", "sh", "-c", 'set -eu; cat -- "$1"']),
     );
     expect(getDockerPathArg(args)).toBe("/workspace-two/README.md");
   });
@@ -174,7 +174,7 @@ describe("sandbox fs bridge shell compatibility", () => {
   });
 
   it("rejects pre-existing host symlink escapes before docker exec", async () => {
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-fs-bridge-"));
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "ernos-fs-bridge-"));
     const workspaceDir = path.join(stateDir, "workspace");
     const outsideDir = path.join(stateDir, "outside");
     const outsideFile = path.join(outsideDir, "secret.txt");
@@ -199,7 +199,7 @@ describe("sandbox fs bridge shell compatibility", () => {
     if (process.platform === "win32") {
       return;
     }
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-fs-bridge-hardlink-"));
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "ernos-fs-bridge-hardlink-"));
     const workspaceDir = path.join(stateDir, "workspace");
     const outsideDir = path.join(stateDir, "outside");
     const outsideFile = path.join(outsideDir, "secret.txt");

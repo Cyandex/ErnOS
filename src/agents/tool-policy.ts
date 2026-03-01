@@ -28,7 +28,34 @@ function wrapOwnerOnlyToolExecution(tool: AnyAgentTool, senderIsOwner: boolean):
   };
 }
 
-const OWNER_ONLY_TOOL_NAME_FALLBACKS = new Set<string>(["whatsapp_login", "cron", "gateway"]);
+/**
+ * Tools that are ALWAYS restricted to owner senders, regardless of config.
+ * Non-owners get these completely removed from their tool list — the LLM never
+ * sees them. This is the primary security boundary for multi-user deployments.
+ *
+ * Enforced by applyOwnerOnlyToolPolicy() which runs on EVERY tool resolution
+ * path (guilds, DMs, inline actions, subagents).
+ */
+const OWNER_ONLY_TOOL_NAME_FALLBACKS = new Set<string>([
+  // Shell / code execution — RCE surface
+  "exec",
+  "shell",
+  "spawn",
+  // Filesystem mutation — data destruction / exfiltration
+  "fs_write",
+  "fs_delete",
+  "fs_move",
+  "apply_patch",
+  // Session orchestration — cross-session injection
+  "sessions_spawn",
+  "sessions_send",
+  // Infrastructure control plane
+  "cron",
+  "gateway",
+  "whatsapp_login",
+  // Multi-agent orchestration — spawns worker agents
+  "devteam",
+]);
 
 export function isOwnerOnlyToolName(name: string) {
   return OWNER_ONLY_TOOL_NAME_FALLBACKS.has(normalizeToolName(name));

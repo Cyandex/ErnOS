@@ -1,0 +1,26 @@
+# ErnOS gateway — Podman Quadlet (rootless)
+# Installed by setup-podman.sh into ernos's ~/.config/containers/systemd/
+# {{ERNOS_HOME}} is replaced at install time.
+
+[Unit]
+Description=ErnOS gateway (rootless Podman)
+
+[Container]
+Image=ernos:local
+ContainerName=ernos
+UserNS=keep-id
+Volume={{ERNOS_HOME}}/.ernos:/home/node/.ernos
+EnvironmentFile={{ERNOS_HOME}}/.ernos/.env
+Environment=HOME=/home/node
+Environment=TERM=xterm-256color
+PublishPort=18789:18789
+PublishPort=18790:18790
+Pull=never
+Exec=node dist/index.js gateway --bind lan --port 18789
+
+[Service]
+TimeoutStartSec=300
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

@@ -3,13 +3,13 @@ import {
   isDangerousHostEnvVarName,
   normalizeEnvVarKey,
 } from "../infra/host-env-security.js";
-import type { OpenClawConfig } from "./types.js";
+import type { ErnOSConfig } from "./types.js";
 
 function isBlockedConfigEnvVar(key: string): boolean {
   return isDangerousHostEnvVarName(key) || isDangerousHostEnvOverrideVarName(key);
 }
 
-function collectConfigEnvVarsByTarget(cfg?: OpenClawConfig): Record<string, string> {
+function collectConfigEnvVarsByTarget(cfg?: ErnOSConfig): Record<string, string> {
   const envConfig = cfg?.env;
   if (!envConfig) {
     return {};
@@ -53,23 +53,20 @@ function collectConfigEnvVarsByTarget(cfg?: OpenClawConfig): Record<string, stri
   return entries;
 }
 
-export function collectConfigRuntimeEnvVars(cfg?: OpenClawConfig): Record<string, string> {
+export function collectConfigRuntimeEnvVars(cfg?: ErnOSConfig): Record<string, string> {
   return collectConfigEnvVarsByTarget(cfg);
 }
 
-export function collectConfigServiceEnvVars(cfg?: OpenClawConfig): Record<string, string> {
+export function collectConfigServiceEnvVars(cfg?: ErnOSConfig): Record<string, string> {
   return collectConfigEnvVarsByTarget(cfg);
 }
 
 /** @deprecated Use `collectConfigRuntimeEnvVars` or `collectConfigServiceEnvVars`. */
-export function collectConfigEnvVars(cfg?: OpenClawConfig): Record<string, string> {
+export function collectConfigEnvVars(cfg?: ErnOSConfig): Record<string, string> {
   return collectConfigRuntimeEnvVars(cfg);
 }
 
-export function applyConfigEnvVars(
-  cfg: OpenClawConfig,
-  env: NodeJS.ProcessEnv = process.env,
-): void {
+export function applyConfigEnvVars(cfg: ErnOSConfig, env: NodeJS.ProcessEnv = process.env): void {
   const entries = collectConfigRuntimeEnvVars(cfg);
   for (const [key, value] of Object.entries(entries)) {
     if (env[key]?.trim()) {

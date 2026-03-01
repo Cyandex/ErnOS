@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import type { StreamFn } from "@mariozechner/pi-agent-core";
 import type {
   AssistantMessage,
   StopReason,
@@ -8,7 +7,8 @@ import type {
   Tool,
   Usage,
 } from "@mariozechner/pi-ai";
-import { createAssistantMessageEventStream } from "@mariozechner/pi-ai";
+import { createAssistantMessageEventStream, registerApiProvider } from "@mariozechner/pi-ai";
+import type { ApiStreamFunction } from "@mariozechner/pi-ai/dist/api-registry.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 
 const log = createSubsystemLogger("ollama-stream");
@@ -23,6 +23,13 @@ interface OllamaChatRequest {
   stream: boolean;
   tools?: OllamaTool[];
   options?: Record<string, unknown>;
+  /**
+   * How long to keep the model in memory after the last request.
+   * -1 = keep loaded forever (eliminates cold-start latency).
+   * 0 = unload immediately after response.
+   * Default (if omitted): 5 minutes.
+   */
+  keep_alive?: number | string;
 }
 
 interface OllamaChatMessage {
@@ -198,7 +205,8 @@ interface OllamaChatResponse {
 
 type InputContentPart =
   | { type: "text"; text: string }
-  | { type: "image"; data: string }
+  | { type: "image"; data: string; mimeType?: string }
+  | { type: "image_url"; image_url: string | { url: string } }
   | { type: "toolCall"; id: string; name: string; arguments: Record<string, unknown> }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
 
@@ -219,9 +227,26 @@ function extractOllamaImages(content: unknown): string[] {
   if (!Array.isArray(content)) {
     return [];
   }
-  return (content as InputContentPart[])
-    .filter((part): part is { type: "image"; data: string } => part.type === "image")
-    .map((part) => part.data);
+  const images: string[] = [];
+  for (const part of content as any[]) {
+    if (part.type === "image" && typeof part.data === "string") {
+      // Native ErnOS format: { type: "image", data: "base64..." }
+      images.push(part.data);
+    } else if (part.type === "image_url") {
+      // OpenAI SDK format: { type: "image_url", image_url: { url: "data:image/...;base64,..." } }
+      const url = typeof part.image_url === "string" ? part.image_url : part.image_url?.url;
+      if (typeof url === "string") {
+        if (url.startsWith("data:")) {
+          const base64 = url.split(",")[1];
+          if (base64) images.push(base64);
+        } else {
+          // For remote URLs, pass the URL itself — Ollama can handle some URLs
+          images.push(url);
+        }
+      }
+    }
+  }
+  return images;
 }
 
 function extractToolCalls(content: unknown): OllamaToolCall[] {
@@ -411,7 +436,7 @@ function resolveOllamaChatUrl(baseUrl: string): string {
   return `${apiBase}/api/chat`;
 }
 
-export function createOllamaStreamFn(baseUrl: string): StreamFn {
+export function createOllamaStreamFn(baseUrl: string): ApiStreamFunction {
   const chatUrl = resolveOllamaChatUrl(baseUrl);
 
   return (model, context, options) => {
@@ -423,6 +448,28 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
           context.messages ?? [],
           context.systemPrompt,
         );
+
+        // DEBUG: log image info in user messages
+        for (const m of ollamaMessages) {
+          if (m.role === "user" && m.images && m.images.length > 0) {
+            console.debug(`[ollama-debug] User message has ${m.images.length} images`);
+          }
+        }
+        const lastUser = context.messages?.filter((m) => m.role === "user").pop();
+        if (lastUser) {
+          const contentType =
+            typeof lastUser.content === "string"
+              ? "string"
+              : Array.isArray(lastUser.content)
+                ? `array(${lastUser.content.length})`
+                : typeof lastUser.content;
+          const imageCount = Array.isArray(lastUser.content)
+            ? (lastUser.content as any[]).filter((p: any) => p.type === "image").length
+            : 0;
+          console.debug(
+            `[ollama-debug] Last user msg content type: ${contentType}, imageCount: ${imageCount}`,
+          );
+        }
 
         const ollamaTools = extractOllamaTools(context.tools);
 
@@ -442,6 +489,9 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
           stream: true,
           ...(ollamaTools.length > 0 ? { tools: ollamaTools } : {}),
           options: ollamaOptions,
+          // Keep model loaded in VRAM permanently — eliminates cold-start latency.
+          // Without this, Ollama unloads after 5 min of inactivity.
+          keep_alive: -1,
         };
 
         const headers: Record<string, string> = {
@@ -548,4 +598,23 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
     queueMicrotask(() => void run());
     return stream;
   };
+}
+
+let registeredOllamaBaseUrl: string | undefined;
+
+export function registerOllamaProvider(baseUrl: string) {
+  if (registeredOllamaBaseUrl === baseUrl) return;
+
+  const streamFn = createOllamaStreamFn(baseUrl);
+
+  registerApiProvider(
+    {
+      api: "ollama" as any,
+      stream: streamFn,
+      streamSimple: streamFn,
+    },
+    "ernos-ollama",
+  );
+
+  registeredOllamaBaseUrl = baseUrl;
 }

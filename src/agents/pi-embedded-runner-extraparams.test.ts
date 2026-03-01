@@ -491,8 +491,8 @@ describe("applyExtraParamsToAgent", () => {
 
     expect(calls).toHaveLength(1);
     expect(calls[0]?.headers).toEqual({
-      "HTTP-Referer": "https://openclaw.ai",
-      "X-Title": "OpenClaw",
+      "HTTP-Referer": "https://ernos.ai",
+      "X-Title": "ErnOS",
       "X-Custom": "1",
     });
   });
@@ -872,7 +872,7 @@ describe("applyExtraParamsToAgent", () => {
         id: "gpt-4o",
         baseUrl: "https://example.openai.azure.com/openai/v1",
         compat: { supportsStore: false },
-      } as Model<"openai-responses">,
+      } as unknown as Model<"openai-responses">,
     });
     expect(payload.store).toBe(false);
   });

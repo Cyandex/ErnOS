@@ -19,7 +19,7 @@ import {
   resolveNativeCommandsEnabled,
   resolveNativeSkillsEnabled,
 } from "../../config/commands.js";
-import type { OpenClawConfig, ReplyToMode } from "../../config/config.js";
+import type { ErnOSConfig, ReplyToMode } from "../../config/config.js";
 import { loadConfig } from "../../config/config.js";
 import { isDangerousNameMatchingEnabled } from "../../config/dangerous-name-matching.js";
 import {
@@ -34,6 +34,7 @@ import { createDiscordRetryRunner } from "../../infra/retry-policy.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { createNonExitingRuntime, type RuntimeEnv } from "../../runtime.js";
 import { resolveDiscordAccount } from "../accounts.js";
+import { createFeedbackButtons } from "../feedback-buttons.js";
 import { fetchDiscordApplicationId } from "../probe.js";
 import { normalizeDiscordToken } from "../token.js";
 import { createDiscordVoiceCommand } from "../voice/command.js";
@@ -81,7 +82,7 @@ import { formatThreadBindingDurationLabel } from "./thread-bindings.messages.js"
 export type MonitorDiscordOpts = {
   token?: string;
   accountId?: string;
-  config?: OpenClawConfig;
+  config?: ErnOSConfig;
   runtime?: RuntimeEnv;
   abortSignal?: AbortSignal;
   mediaMaxMb?: number;
@@ -465,6 +466,8 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
         threadBindings,
       }),
     ];
+    // Register feedback buttons (👍/👎 RLHF)
+    components.push(...createFeedbackButtons());
     const modals: Modal[] = [];
 
     if (execApprovalsHandler) {
@@ -523,6 +526,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
         publicKey: "a",
         token,
         autoDeploy: false,
+        eventQueue: { listenerTimeout: 2_147_483_647 },
       },
       {
         commands,

@@ -1,10 +1,10 @@
-import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import type { ErnOSConfig } from "ernos/plugin-sdk";
 import { resolveFeishuAccount } from "./accounts.js";
 import { createFeishuClient } from "./client.js";
 import { resolveReceiveIdType, normalizeFeishuTarget } from "./targets.js";
 
 export function resolveFeishuSendTarget(params: {
-  cfg: ClawdbotConfig;
+  cfg: ErnOSConfig;
   to: string;
   accountId?: string;
 }) {

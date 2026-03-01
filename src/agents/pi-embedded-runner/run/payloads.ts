@@ -3,7 +3,7 @@ import { parseReplyDirectives } from "../../../auto-reply/reply/reply-directives
 import type { ReasoningLevel, VerboseLevel } from "../../../auto-reply/thinking.js";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../../../auto-reply/tokens.js";
 import { formatToolAggregate } from "../../../auto-reply/tool-meta.js";
-import type { OpenClawConfig } from "../../../config/config.js";
+import type { ErnOSConfig } from "../../../config/config.js";
 import {
   BILLING_ERROR_USER_MESSAGE,
   formatAssistantErrorText,
@@ -92,7 +92,7 @@ export function buildEmbeddedRunPayloads(params: {
   toolMetas: ToolMetaEntry[];
   lastAssistant: AssistantMessage | undefined;
   lastToolError?: LastToolError;
-  config?: OpenClawConfig;
+  config?: ErnOSConfig;
   sessionKey: string;
   provider?: string;
   model?: string;
@@ -157,7 +157,9 @@ export function buildEmbeddedRunPayloads(params: {
   }
 
   const inlineToolResults =
-    params.inlineToolResultsAllowed && params.verboseLevel !== "off" && params.toolMetas.length > 0;
+    params.inlineToolResultsAllowed &&
+    params.verboseLevel !== "off" &&
+    (params.toolMetas?.length ?? 0) > 0;
   if (inlineToolResults) {
     for (const { toolName, meta } of params.toolMetas) {
       const agg = formatToolAggregate(toolName, meta ? [meta] : [], {

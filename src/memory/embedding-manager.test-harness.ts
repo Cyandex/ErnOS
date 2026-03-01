@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, expect } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { ErnOSConfig } from "../config/config.js";
 import { getEmbedBatchMock, resetEmbeddingMocks } from "./embedding.test-mocks.js";
 import {
   getMemorySearchManager,
@@ -14,11 +14,7 @@ export function installEmbeddingManagerFixture(opts: {
   fixturePrefix: string;
   largeTokens: number;
   smallTokens: number;
-  createCfg: (params: {
-    workspaceDir: string;
-    indexPath: string;
-    tokens: number;
-  }) => OpenClawConfig;
+  createCfg: (params: { workspaceDir: string; indexPath: string; tokens: number }) => ErnOSConfig;
   resetIndexEachTest?: boolean;
 }) {
   const embedBatch = getEmbedBatchMock();

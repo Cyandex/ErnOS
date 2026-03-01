@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/config.js";
+import type { ErnOSConfig } from "../../config/config.js";
 import {
   resolveChannelGroupRequireMention,
   resolveChannelGroupToolsPolicy,
@@ -40,7 +40,7 @@ function parseTelegramGroupId(value?: string | null) {
 }
 
 function resolveTelegramRequireMention(params: {
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   chatId?: string;
   topicId?: string;
 }): boolean | undefined {
@@ -303,11 +303,40 @@ export function resolveDiscordGroupToolPolicy(
   params: GroupMentionParams,
 ): GroupToolPolicyConfig | undefined {
   const context = resolveDiscordPolicyContext(params);
-  const channelPolicy = resolveSenderToolsEntry(context.channelEntry, params);
-  if (channelPolicy) {
-    return channelPolicy;
+
+  // 1. Channel-scoped sender policy
+  if (context.channelEntry?.toolsBySender) {
+    const channelSenderPolicy = resolveToolsBySender({
+      toolsBySender: context.channelEntry.toolsBySender,
+      ...params,
+    });
+    if (channelSenderPolicy) {
+      return channelSenderPolicy;
+    }
   }
-  return resolveSenderToolsEntry(context.guildEntry, params);
+
+  // 2. Guild-scoped sender policy
+  if (context.guildEntry?.toolsBySender) {
+    const guildSenderPolicy = resolveToolsBySender({
+      toolsBySender: context.guildEntry.toolsBySender,
+      ...params,
+    });
+    if (guildSenderPolicy) {
+      return guildSenderPolicy;
+    }
+  }
+
+  // 3. Channel-scoped generic policy
+  if (context.channelEntry?.tools) {
+    return context.channelEntry.tools;
+  }
+
+  // 4. Guild-scoped generic policy
+  if (context.guildEntry?.tools) {
+    return context.guildEntry.tools;
+  }
+
+  return undefined;
 }
 
 export function resolveSlackGroupToolPolicy(

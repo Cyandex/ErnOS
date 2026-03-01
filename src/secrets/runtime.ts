@@ -1,4 +1,4 @@
-import { resolveOpenClawAgentDir } from "../agents/agent-paths.js";
+import { resolveErnOSAgentDir } from "../agents/agent-paths.js";
 import { listAgentIds, resolveAgentDir } from "../agents/agent-scope.js";
 import type { AuthProfileCredential, AuthProfileStore } from "../agents/auth-profiles.js";
 import {
@@ -9,7 +9,7 @@ import {
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
-  type OpenClawConfig,
+  type ErnOSConfig,
 } from "../config/config.js";
 import { coerceSecretRef, type SecretRef } from "../config/types.secrets.js";
 import { resolveUserPath } from "../utils.js";
@@ -26,8 +26,8 @@ export type SecretResolverWarning = {
 };
 
 export type PreparedSecretsRuntimeSnapshot = {
-  sourceConfig: OpenClawConfig;
-  config: OpenClawConfig;
+  sourceConfig: ErnOSConfig;
+  config: ErnOSConfig;
   authStores: Array<{ agentDir: string; store: AuthProfileStore }>;
   warnings: SecretResolverWarning[];
 };
@@ -66,14 +66,14 @@ type SecretAssignment = {
 };
 
 type ResolverContext = {
-  sourceConfig: OpenClawConfig;
+  sourceConfig: ErnOSConfig;
   env: NodeJS.ProcessEnv;
   cache: SecretRefResolveCache;
   warnings: SecretResolverWarning[];
   assignments: SecretAssignment[];
 };
 
-type SecretDefaults = NonNullable<OpenClawConfig["secrets"]>["defaults"];
+type SecretDefaults = NonNullable<ErnOSConfig["secrets"]>["defaults"];
 
 let activeSnapshot: PreparedSecretsRuntimeSnapshot | null = null;
 
@@ -195,10 +195,7 @@ function collectGoogleChatAssignments(params: {
   }
 }
 
-function collectConfigAssignments(params: {
-  config: OpenClawConfig;
-  context: ResolverContext;
-}): void {
+function collectConfigAssignments(params: { config: ErnOSConfig; context: ResolverContext }): void {
   const defaults = params.context.sourceConfig.secrets?.defaults;
   const providers = params.config.models?.providers as Record<string, ProviderLike> | undefined;
   if (providers) {
@@ -341,9 +338,9 @@ function applyAssignments(params: {
   }
 }
 
-function collectCandidateAgentDirs(config: OpenClawConfig): string[] {
+function collectCandidateAgentDirs(config: ErnOSConfig): string[] {
   const dirs = new Set<string>();
-  dirs.add(resolveUserPath(resolveOpenClawAgentDir()));
+  dirs.add(resolveUserPath(resolveErnOSAgentDir()));
   for (const agentId of listAgentIds(config)) {
     dirs.add(resolveUserPath(resolveAgentDir(config, agentId)));
   }
@@ -351,7 +348,7 @@ function collectCandidateAgentDirs(config: OpenClawConfig): string[] {
 }
 
 export async function prepareSecretsRuntimeSnapshot(params: {
-  config: OpenClawConfig;
+  config: ErnOSConfig;
   env?: NodeJS.ProcessEnv;
   agentDirs?: string[];
   loadAuthStore?: (agentDir?: string) => AuthProfileStore;

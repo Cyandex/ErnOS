@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawKit
+import ErnOSKit
 
 @MainActor
 final class GatewayHealthMonitor {

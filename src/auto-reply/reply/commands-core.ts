@@ -8,6 +8,7 @@ import { handleAcpCommand } from "./commands-acp.js";
 import { handleAllowlistCommand } from "./commands-allowlist.js";
 import { handleApproveCommand } from "./commands-approve.js";
 import { handleBashCommand } from "./commands-bash.js";
+import { handleClearCommand } from "./commands-clear.js";
 import { handleCompactCommand } from "./commands-compact.js";
 import { handleConfigCommand, handleDebugCommand } from "./commands-config.js";
 import {
@@ -20,6 +21,7 @@ import {
 } from "./commands-info.js";
 import { handleModelsCommand } from "./commands-models.js";
 import { handlePluginCommand } from "./commands-plugin.js";
+import { handlePurgeCommand } from "./commands-purge.js";
 import {
   handleAbortTrigger,
   handleActivationCommand,
@@ -157,6 +159,8 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
       handleModelsCommand,
       handleStopCommand,
       handleCompactCommand,
+      handleClearCommand,
+      handlePurgeCommand,
       handleAbortTrigger,
     ];
   }

@@ -459,6 +459,44 @@ export function renderChat(props: ChatProps) {
           </label>
           <div class="chat-compose__actions">
             <button
+              class="btn chat-attach-btn"
+              type="button"
+              title="Attach image"
+              aria-label="Attach image"
+              ?disabled=${!props.connected || !props.onAttachmentsChange}
+              @click=${() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "image/*";
+                input.multiple = true;
+                input.addEventListener("change", () => {
+                  if (!input.files || !props.onAttachmentsChange) {
+                    return;
+                  }
+                  for (const file of input.files) {
+                    if (!file.type.startsWith("image/")) {
+                      continue;
+                    }
+                    const reader = new FileReader();
+                    reader.addEventListener("load", () => {
+                      const dataUrl = reader.result as string;
+                      const newAttachment: ChatAttachment = {
+                        id: generateAttachmentId(),
+                        dataUrl,
+                        mimeType: file.type,
+                      };
+                      const current = props.attachments ?? [];
+                      props.onAttachmentsChange?.([...current, newAttachment]);
+                    });
+                    reader.readAsDataURL(file);
+                  }
+                });
+                input.click();
+              }}
+            >
+              ${icons.paperclip}
+            </button>
+            <button
               class="btn"
               ?disabled=${!props.connected || (!canAbort && props.sending)}
               @click=${canAbort ? props.onAbort : props.onNewSession}
@@ -469,8 +507,9 @@ export function renderChat(props: ChatProps) {
               class="btn primary"
               ?disabled=${!props.connected}
               @click=${props.onSend}
+              title="Send message"
             >
-              ${isBusy ? "Queue" : "Send"}<kbd class="btn-kbd">↵</kbd>
+              ${isBusy ? "Queue" : html`<span class="btn-icon">${icons.sprout}</span> Send`}<kbd class="btn-kbd">↵</kbd>
             </button>
           </div>
         </div>
@@ -542,7 +581,7 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
     const msg = history[i];
     const normalized = normalizeMessage(msg);
     const raw = msg as Record<string, unknown>;
-    const marker = raw.__openclaw as Record<string, unknown> | undefined;
+    const marker = raw.__ernos as Record<string, unknown> | undefined;
     if (marker && marker.kind === "compaction") {
       items.push({
         kind: "divider",

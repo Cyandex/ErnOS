@@ -199,6 +199,9 @@ export async function loadImageFromRef(
 ): Promise<ImageContent | null> {
   try {
     let targetPath = ref.resolved;
+    console.debug(
+      `[image-debug] loadImageFromRef: ref=${ref.resolved}, type=${ref.type}, workspaceOnly=${options?.workspaceOnly}, hasSandbox=${!!options?.sandbox}`,
+    );
 
     // Resolve paths relative to sandbox or workspace as needed
     if (options?.sandbox) {
@@ -241,6 +244,9 @@ export async function loadImageFromRef(
       : await loadWebMedia(targetPath, options?.maxBytes);
 
     if (media.kind !== "image") {
+      console.debug(
+        `[image-debug] loadImageFromRef: not an image file: ${targetPath} (got ${media.kind})`,
+      );
       log.debug(`Native image: not an image file: ${targetPath} (got ${media.kind})`);
       return null;
     }
@@ -250,9 +256,15 @@ export async function loadImageFromRef(
     const mimeType = media.contentType ?? "image/jpeg";
     const data = media.buffer.toString("base64");
 
+    console.debug(
+      `[image-debug] loadImageFromRef: SUCCESS loaded ${targetPath} mimeType=${mimeType} base64Length=${data.length}`,
+    );
     return { type: "image", data, mimeType };
   } catch (err) {
     // Log the actual error for debugging (size limits, network failures, etc.)
+    console.debug(
+      `[image-debug] loadImageFromRef: FAILED to load ${ref.resolved}: ${err instanceof Error ? err.message : String(err)}`,
+    );
     log.debug(
       `Native image: failed to load ${ref.resolved}: ${err instanceof Error ? err.message : String(err)}`,
     );
@@ -261,13 +273,57 @@ export async function loadImageFromRef(
 }
 
 /**
+ * Known Ollama vision model family patterns.
+ * Many Ollama vision models incorrectly report input: ["text"] through
+ * the pi-ai library, even though they natively support image input.
+ */
+const KNOWN_VISION_MODEL_PATTERNS = [
+  /^qwen.*3\.5/i,
+  /^qwen2.*vl/i,
+  /^llava/i,
+  /^llama.*vision/i,
+  /^gemma.*3/i,
+  /^minicpm.*v/i,
+  /^moondream/i,
+  /^bakllava/i,
+  /^cogvlm/i,
+  /^deepseek.*vl/i,
+  /^internvl/i,
+  /^phi.*vision/i,
+];
+
+/**
+ * Checks if a model ID matches a known vision model family.
+ */
+function isKnownVisionModel(modelId: string): boolean {
+  const baseName = modelId.split(":")[0].toLowerCase();
+  return KNOWN_VISION_MODEL_PATTERNS.some((pattern) => pattern.test(baseName));
+}
+
+/**
  * Checks if a model supports image input based on its input capabilities.
  *
- * @param model The model object with input capability array
+ * @param model The model object with input capability array and optional id
  * @returns True if the model supports image input
  */
-export function modelSupportsImages(model: { input?: string[] }): boolean {
-  return model.input?.includes("image") ?? false;
+export function modelSupportsImages(model: { input?: string[]; id?: string }): boolean {
+  // If model capabilities are explicitly declared and include image, return true.
+  if (model.input?.includes("image")) {
+    return true;
+  }
+  // If input is undefined (common for Ollama models), default to allowing images
+  // rather than silently dropping them — multimodal models like Qwen, LLaVA, etc.
+  // don't always report their input capabilities through the catalog.
+  if (model.input === undefined) {
+    return true;
+  }
+  // Many Ollama vision models (qwen3.5, llava, etc.) report input: ["text"]
+  // through the pi-ai library even though they natively support image input.
+  // Fall back to a name-based check for known vision model families.
+  if (model.id && isKnownVisionModel(model.id)) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -298,6 +354,9 @@ export async function detectAndLoadPromptImages(params: {
 }> {
   // If model doesn't support images, return empty results
   if (!modelSupportsImages(params.model)) {
+    console.debug(
+      `[image-debug] detectAndLoadPromptImages: model does NOT support images, input=${JSON.stringify(params.model.input)}`,
+    );
     return {
       images: [],
       detectedRefs: [],
@@ -307,7 +366,13 @@ export async function detectAndLoadPromptImages(params: {
   }
 
   // Detect images from current prompt
+  console.debug(
+    `[image-debug] detectAndLoadPromptImages: scanning prompt (${params.prompt.length} chars), first 500: ${params.prompt.slice(0, 500)}`,
+  );
   const allRefs = detectImageReferences(params.prompt);
+  console.debug(
+    `[image-debug] detectAndLoadPromptImages: detected ${allRefs.length} refs: ${JSON.stringify(allRefs.map((r) => ({ raw: r.raw, resolved: r.resolved })))}`,
+  );
 
   if (allRefs.length === 0) {
     return {

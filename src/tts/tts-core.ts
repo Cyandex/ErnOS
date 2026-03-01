@@ -1,4 +1,5 @@
 import { rmSync } from "node:fs";
+import path from "node:path";
 import { completeSimple, type TextContent } from "@mariozechner/pi-ai";
 import { EdgeTTS } from "node-edge-tts";
 import { getApiKeyForModel, requireApiKey } from "../agents/model-auth.js";
@@ -9,7 +10,7 @@ import {
   type ModelRef,
 } from "../agents/model-selection.js";
 import { resolveModel } from "../agents/pi-embedded-runner/model.js";
-import type { OpenClawConfig } from "../config/config.js";
+import type { ErnOSConfig } from "../config/config.js";
 import type {
   ResolvedTtsConfig,
   ResolvedTtsModelOverrides,
@@ -334,15 +335,14 @@ export const OPENAI_TTS_MODELS = ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"] as con
  *
  * Note: Read at runtime (not module load) to support config.env loading.
  */
-function getOpenAITtsBaseUrl(): string {
-  return (process.env.OPENAI_TTS_BASE_URL?.trim() || "https://api.openai.com/v1").replace(
-    /\/+$/,
-    "",
-  );
+function getOpenAITtsBaseUrl(customBaseUrl?: string): string {
+  const url =
+    customBaseUrl?.trim() || process.env.OPENAI_TTS_BASE_URL?.trim() || "https://api.openai.com/v1";
+  return url.replace(/\/+$/, "");
 }
 
-function isCustomOpenAIEndpoint(): boolean {
-  return getOpenAITtsBaseUrl() !== "https://api.openai.com/v1";
+function isCustomOpenAIEndpoint(customBaseUrl?: string): boolean {
+  return getOpenAITtsBaseUrl(customBaseUrl) !== "https://api.openai.com/v1";
 }
 export const OPENAI_TTS_VOICES = [
   "alloy",
@@ -363,17 +363,17 @@ export const OPENAI_TTS_VOICES = [
 
 type OpenAiTtsVoice = (typeof OPENAI_TTS_VOICES)[number];
 
-export function isValidOpenAIModel(model: string): boolean {
+export function isValidOpenAIModel(model: string, customBaseUrl?: string): boolean {
   // Allow any model when using custom endpoint (e.g., Kokoro, LocalAI)
-  if (isCustomOpenAIEndpoint()) {
+  if (isCustomOpenAIEndpoint(customBaseUrl)) {
     return true;
   }
   return OPENAI_TTS_MODELS.includes(model as (typeof OPENAI_TTS_MODELS)[number]);
 }
 
-export function isValidOpenAIVoice(voice: string): voice is OpenAiTtsVoice {
+export function isValidOpenAIVoice(voice: string, customBaseUrl?: string): voice is OpenAiTtsVoice {
   // Allow any voice when using custom endpoint (e.g., Kokoro Chinese voices)
-  if (isCustomOpenAIEndpoint()) {
+  if (isCustomOpenAIEndpoint(customBaseUrl)) {
     return true;
   }
   return OPENAI_TTS_VOICES.includes(voice as OpenAiTtsVoice);
@@ -392,7 +392,7 @@ type SummaryModelSelection = {
 };
 
 function resolveSummaryModelRef(
-  cfg: OpenClawConfig,
+  cfg: ErnOSConfig,
   config: ResolvedTtsConfig,
 ): SummaryModelSelection {
   const defaultRef = resolveDefaultModelForAgent({ cfg });
@@ -420,7 +420,7 @@ function isTextContentBlock(block: { type: string }): block is TextContent {
 export async function summarizeText(params: {
   text: string;
   targetLength: number;
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   config: ResolvedTtsConfig;
   timeoutMs: number;
 }): Promise<SummarizeResult> {
@@ -593,15 +593,16 @@ export async function openaiTTS(params: {
   apiKey: string;
   model: string;
   voice: string;
+  baseUrl?: string;
   responseFormat: "mp3" | "opus" | "pcm";
   timeoutMs: number;
 }): Promise<Buffer> {
-  const { text, apiKey, model, voice, responseFormat, timeoutMs } = params;
+  const { text, apiKey, model, voice, baseUrl, responseFormat, timeoutMs } = params;
 
-  if (!isValidOpenAIModel(model)) {
+  if (!isValidOpenAIModel(model, baseUrl)) {
     throw new Error(`Invalid model: ${model}`);
   }
-  if (!isValidOpenAIVoice(voice)) {
+  if (!isValidOpenAIVoice(voice, baseUrl)) {
     throw new Error(`Invalid voice: ${voice}`);
   }
 
@@ -609,7 +610,7 @@ export async function openaiTTS(params: {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(`${getOpenAITtsBaseUrl()}/audio/speech`, {
+    const response = await fetch(`${getOpenAITtsBaseUrl(baseUrl)}/audio/speech`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -670,4 +671,51 @@ export async function edgeTTS(params: {
     timeout: config.timeoutMs ?? timeoutMs,
   });
   await tts.ttsPromise(text, outputPath);
+}
+
+import { spawn } from "node:child_process";
+
+export async function kokoroNativeTTS(params: {
+  text: string;
+  outputPath: string;
+  config: ResolvedTtsConfig["kokoro"];
+}): Promise<void> {
+  const { text, outputPath, config } = params;
+
+  // Use config default or am_michael if undefined
+  const voice = config?.voice || "am_michael";
+
+  return new Promise((resolve, reject) => {
+    try {
+      const scriptPath = path.resolve(process.cwd(), "scripts/run-kokoro.py");
+
+      const child = spawn("python3.11", [scriptPath, outputPath, voice], {
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      let stderrData = "";
+
+      child.stderr.on("data", (data) => {
+        stderrData += data.toString();
+      });
+
+      child.on("close", (code) => {
+        if (code !== 0) {
+          reject(new Error(`Kokoro TTS failed (code ${code}): ${stderrData}`));
+        } else {
+          resolve();
+        }
+      });
+
+      child.on("error", (err) => {
+        reject(new Error(`Kokoro process spawn failed: ${err.message}`));
+      });
+
+      // Write the full text to standard input to avoid OS argument length limits
+      child.stdin.write(text);
+      child.stdin.end();
+    } catch (err: any) {
+      reject(new Error(`Kokoro TTS setup failed: ${err.message}`));
+    }
+  });
 }

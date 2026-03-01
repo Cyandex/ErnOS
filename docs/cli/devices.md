@@ -1,78 +1,78 @@
 ---
-summary: "CLI reference for `openclaw devices` (device pairing + token rotation/revocation)"
+summary: "CLI reference for `ernos devices` (device pairing + token rotation/revocation)"
 read_when:
   - You are approving device pairing requests
   - You need to rotate or revoke device tokens
 title: "devices"
 ---
 
-# `openclaw devices`
+# `ernos devices`
 
 Manage device pairing requests and device-scoped tokens.
 
 ## Commands
 
-### `openclaw devices list`
+### `ernos devices list`
 
 List pending pairing requests and paired devices.
 
 ```
-openclaw devices list
-openclaw devices list --json
+ernos devices list
+ernos devices list --json
 ```
 
-### `openclaw devices remove <deviceId>`
+### `ernos devices remove <deviceId>`
 
 Remove one paired device entry.
 
 ```
-openclaw devices remove <deviceId>
-openclaw devices remove <deviceId> --json
+ernos devices remove <deviceId>
+ernos devices remove <deviceId> --json
 ```
 
-### `openclaw devices clear --yes [--pending]`
+### `ernos devices clear --yes [--pending]`
 
 Clear paired devices in bulk.
 
 ```
-openclaw devices clear --yes
-openclaw devices clear --yes --pending
-openclaw devices clear --yes --pending --json
+ernos devices clear --yes
+ernos devices clear --yes --pending
+ernos devices clear --yes --pending --json
 ```
 
-### `openclaw devices approve [requestId] [--latest]`
+### `ernos devices approve [requestId] [--latest]`
 
-Approve a pending device pairing request. If `requestId` is omitted, OpenClaw
+Approve a pending device pairing request. If `requestId` is omitted, ErnOS
 automatically approves the most recent pending request.
 
 ```
-openclaw devices approve
-openclaw devices approve <requestId>
-openclaw devices approve --latest
+ernos devices approve
+ernos devices approve <requestId>
+ernos devices approve --latest
 ```
 
-### `openclaw devices reject <requestId>`
+### `ernos devices reject <requestId>`
 
 Reject a pending device pairing request.
 
 ```
-openclaw devices reject <requestId>
+ernos devices reject <requestId>
 ```
 
-### `openclaw devices rotate --device <id> --role <role> [--scope <scope...>]`
+### `ernos devices rotate --device <id> --role <role> [--scope <scope...>]`
 
 Rotate a device token for a specific role (optionally updating scopes).
 
 ```
-openclaw devices rotate --device <deviceId> --role operator --scope operator.read --scope operator.write
+ernos devices rotate --device <deviceId> --role operator --scope operator.read --scope operator.write
 ```
 
-### `openclaw devices revoke --device <id> --role <role>`
+### `ernos devices revoke --device <id> --role <role>`
 
 Revoke a device token for a specific role.
 
 ```
-openclaw devices revoke --device <deviceId> --role node
+ernos devices revoke --device <deviceId> --role node
 ```
 
 ## Common options

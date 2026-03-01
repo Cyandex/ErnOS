@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/slack",
+  "name": "@ernos/slack",
   "version": "2026.2.27",
   "private": true,
-  "description": "OpenClaw Slack channel plugin",
+  "description": "ErnOS Slack channel plugin",
   "type": "module",
-  "openclaw": {
+  "ernos": {
     "extensions": [
       "./index.ts"
     ]

@@ -21,8 +21,8 @@ const serviceReadRuntime = vi.fn(async (_env?: NodeJS.ProcessEnv) => ({ status: 
 const serviceReadCommand = vi.fn(async (_env?: NodeJS.ProcessEnv) => ({
   programArguments: ["/bin/node", "cli", "gateway", "--port", "19001"],
   environment: {
-    OPENCLAW_STATE_DIR: "/tmp/openclaw-daemon",
-    OPENCLAW_CONFIG_PATH: "/tmp/openclaw-daemon/openclaw.json",
+    ERNOS_STATE_DIR: "/tmp/ernos-daemon",
+    ERNOS_CONFIG_PATH: "/tmp/ernos-daemon/ernos.json",
   },
 }));
 const resolveGatewayBindHost = vi.fn(
@@ -30,16 +30,14 @@ const resolveGatewayBindHost = vi.fn(
 );
 const pickPrimaryTailnetIPv4 = vi.fn(() => "100.64.0.9");
 const resolveGatewayPort = vi.fn((_cfg?: unknown, _env?: unknown) => 18789);
-const resolveStateDir = vi.fn(
-  (env: NodeJS.ProcessEnv) => env.OPENCLAW_STATE_DIR ?? "/tmp/openclaw-cli",
-);
+const resolveStateDir = vi.fn((env: NodeJS.ProcessEnv) => env.ERNOS_STATE_DIR ?? "/tmp/ernos-cli");
 const resolveConfigPath = vi.fn((env: NodeJS.ProcessEnv, stateDir: string) => {
-  return env.OPENCLAW_CONFIG_PATH ?? `${stateDir}/openclaw.json`;
+  return env.ERNOS_CONFIG_PATH ?? `${stateDir}/ernos.json`;
 });
 
 vi.mock("../../config/config.js", () => ({
   createConfigIO: ({ configPath }: { configPath: string }) => {
-    const isDaemon = configPath.includes("/openclaw-daemon/");
+    const isDaemon = configPath.includes("/ernos-daemon/");
     return {
       readConfigFileSnapshot: async () => ({
         path: configPath,
@@ -120,15 +118,15 @@ describe("gatherDaemonStatus", () => {
 
   beforeEach(() => {
     envSnapshot = captureEnv([
-      "OPENCLAW_STATE_DIR",
-      "OPENCLAW_CONFIG_PATH",
-      "OPENCLAW_GATEWAY_TOKEN",
-      "OPENCLAW_GATEWAY_PASSWORD",
+      "ERNOS_STATE_DIR",
+      "ERNOS_CONFIG_PATH",
+      "ERNOS_GATEWAY_TOKEN",
+      "ERNOS_GATEWAY_PASSWORD",
     ]);
-    process.env.OPENCLAW_STATE_DIR = "/tmp/openclaw-cli";
-    process.env.OPENCLAW_CONFIG_PATH = "/tmp/openclaw-cli/openclaw.json";
-    delete process.env.OPENCLAW_GATEWAY_TOKEN;
-    delete process.env.OPENCLAW_GATEWAY_PASSWORD;
+    process.env.ERNOS_STATE_DIR = "/tmp/ernos-cli";
+    process.env.ERNOS_CONFIG_PATH = "/tmp/ernos-cli/ernos.json";
+    delete process.env.ERNOS_GATEWAY_TOKEN;
+    delete process.env.ERNOS_GATEWAY_PASSWORD;
     callGatewayStatusProbe.mockClear();
     loadGatewayTlsRuntime.mockClear();
   });

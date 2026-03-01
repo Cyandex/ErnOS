@@ -28,22 +28,22 @@ function clearSupervisorHints() {
 }
 
 describe("restartGatewayProcessWithFreshPid", () => {
-  it("returns disabled when OPENCLAW_NO_RESPAWN is set", () => {
-    process.env.OPENCLAW_NO_RESPAWN = "1";
+  it("returns disabled when ERNOS_NO_RESPAWN is set", () => {
+    process.env.ERNOS_NO_RESPAWN = "1";
     const result = restartGatewayProcessWithFreshPid();
     expect(result.mode).toBe("disabled");
     expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it("returns supervised when launchd/systemd hints are present", () => {
-    process.env.LAUNCH_JOB_LABEL = "ai.openclaw.gateway";
+    process.env.LAUNCH_JOB_LABEL = "ai.ernos.gateway";
     const result = restartGatewayProcessWithFreshPid();
     expect(result.mode).toBe("supervised");
     expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it("spawns detached child with current exec argv", () => {
-    delete process.env.OPENCLAW_NO_RESPAWN;
+    delete process.env.ERNOS_NO_RESPAWN;
     clearSupervisorHints();
     process.execArgv = ["--import", "tsx"];
     process.argv = ["/usr/local/bin/node", "/repo/dist/index.js", "gateway", "run"];
@@ -62,32 +62,32 @@ describe("restartGatewayProcessWithFreshPid", () => {
     );
   });
 
-  it("returns supervised when OPENCLAW_LAUNCHD_LABEL is set (stock launchd plist)", () => {
+  it("returns supervised when ERNOS_LAUNCHD_LABEL is set (stock launchd plist)", () => {
     clearSupervisorHints();
-    process.env.OPENCLAW_LAUNCHD_LABEL = "ai.openclaw.gateway";
+    process.env.ERNOS_LAUNCHD_LABEL = "ai.ernos.gateway";
     const result = restartGatewayProcessWithFreshPid();
     expect(result.mode).toBe("supervised");
     expect(spawnMock).not.toHaveBeenCalled();
   });
 
-  it("returns supervised when OPENCLAW_SYSTEMD_UNIT is set", () => {
+  it("returns supervised when ERNOS_SYSTEMD_UNIT is set", () => {
     clearSupervisorHints();
-    process.env.OPENCLAW_SYSTEMD_UNIT = "openclaw-gateway.service";
+    process.env.ERNOS_SYSTEMD_UNIT = "ernos-gateway.service";
     const result = restartGatewayProcessWithFreshPid();
     expect(result.mode).toBe("supervised");
     expect(spawnMock).not.toHaveBeenCalled();
   });
 
-  it("returns supervised when OPENCLAW_SERVICE_MARKER is set", () => {
+  it("returns supervised when ERNOS_SERVICE_MARKER is set", () => {
     clearSupervisorHints();
-    process.env.OPENCLAW_SERVICE_MARKER = "gateway";
+    process.env.ERNOS_SERVICE_MARKER = "gateway";
     const result = restartGatewayProcessWithFreshPid();
     expect(result.mode).toBe("supervised");
     expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it("returns failed when spawn throws", () => {
-    delete process.env.OPENCLAW_NO_RESPAWN;
+    delete process.env.ERNOS_NO_RESPAWN;
     clearSupervisorHints();
 
     spawnMock.mockImplementation(() => {

@@ -1,3 +1,4 @@
+import path from "node:path";
 import { cancel, confirm, isCancel } from "@clack/prompts";
 import { formatCliCommand } from "../cli/command-format.js";
 import { isNixMode } from "../config/config.js";
@@ -13,7 +14,7 @@ import {
   removeWorkspaceDirs,
 } from "./cleanup-utils.js";
 
-export type ResetScope = "config" | "config+creds+sessions" | "full";
+export type ResetScope = "config" | "config+creds+sessions" | "runtime" | "full";
 
 export type ResetOptions = {
   scope?: ResetScope;
@@ -63,9 +64,14 @@ export async function resetCommand(runtime: RuntimeEnv, opts: ResetOptions) {
       message: "Reset scope",
       options: [
         {
+          value: "runtime",
+          label: "Runtime data only",
+          hint: "sessions + memory + logs — keeps config & prompts",
+        },
+        {
           value: "config",
           label: "Config only",
-          hint: "openclaw.json",
+          hint: "ernos.json",
         },
         {
           value: "config+creds+sessions",
@@ -78,7 +84,7 @@ export async function resetCommand(runtime: RuntimeEnv, opts: ResetOptions) {
           hint: "state dir + workspace",
         },
       ],
-      initialValue: "config+creds+sessions",
+      initialValue: "runtime",
     });
     if (isCancel(selection)) {
       cancel(stylePromptTitle("Reset cancelled.") ?? "Reset cancelled.");
@@ -88,8 +94,10 @@ export async function resetCommand(runtime: RuntimeEnv, opts: ResetOptions) {
     scope = selection;
   }
 
-  if (!["config", "config+creds+sessions", "full"].includes(scope)) {
-    runtime.error('Invalid --scope. Expected "config", "config+creds+sessions", or "full".');
+  if (!["config", "config+creds+sessions", "runtime", "full"].includes(scope)) {
+    runtime.error(
+      'Invalid --scope. Expected "config", "config+creds+sessions", "runtime", or "full".',
+    );
     runtime.exit(1);
     return;
   }
@@ -117,6 +125,27 @@ export async function resetCommand(runtime: RuntimeEnv, opts: ResetOptions) {
     }
   }
 
+  if (scope === "runtime") {
+    // Clear runtime data only: memory, sessions, delivery-queue, logs, canvas, media
+    // Preserves: ernos.json, .env, identity/, completions/, devices/, credentials
+    const runtimeDirs = ["memory", "delivery-queue", "logs", "canvas", "media"];
+    for (const dir of runtimeDirs) {
+      const dirPath = path.join(stateDir, dir);
+      await removePath(dirPath, runtime, { dryRun, label: dirPath });
+    }
+    // Clear agent session data
+    const sessionDirs = await listAgentSessionDirs(stateDir);
+    for (const dir of sessionDirs) {
+      await removePath(dir, runtime, { dryRun, label: dir });
+    }
+    // Clear RLHF feedback
+    const rlhfPath = path.join(stateDir, "rlhf_feedback.jsonl");
+    await removePath(rlhfPath, runtime, { dryRun, label: rlhfPath });
+    runtime.log("\n🌱 Runtime data cleared. Config and prompts preserved.");
+    runtime.log(`Next: ${formatCliCommand("./start-ernos.sh")}`);
+    return;
+  }
+
   if (scope === "config") {
     await removePath(configPath, runtime, { dryRun, label: configPath });
     return;
@@ -129,7 +158,7 @@ export async function resetCommand(runtime: RuntimeEnv, opts: ResetOptions) {
     for (const dir of sessionDirs) {
       await removePath(dir, runtime, { dryRun, label: dir });
     }
-    runtime.log(`Next: ${formatCliCommand("openclaw onboard --install-daemon")}`);
+    runtime.log(`Next: ${formatCliCommand("ernos onboard --install-daemon")}`);
     return;
   }
 
@@ -140,7 +169,7 @@ export async function resetCommand(runtime: RuntimeEnv, opts: ResetOptions) {
       { dryRun },
     );
     await removeWorkspaceDirs(workspaceDirs, runtime, { dryRun });
-    runtime.log(`Next: ${formatCliCommand("openclaw onboard --install-daemon")}`);
+    runtime.log(`Next: ${formatCliCommand("ernos onboard --install-daemon")}`);
     return;
   }
 }

@@ -1,18 +1,18 @@
 import type {
   ChannelOnboardingAdapter,
   ChannelOnboardingDmPolicy,
-  ClawdbotConfig,
+  ErnOSConfig,
   DmPolicy,
   WizardPrompter,
-} from "openclaw/plugin-sdk";
-import { addWildcardAllowFrom, DEFAULT_ACCOUNT_ID, formatDocsLink } from "openclaw/plugin-sdk";
+} from "ernos/plugin-sdk";
+import { addWildcardAllowFrom, DEFAULT_ACCOUNT_ID, formatDocsLink } from "ernos/plugin-sdk";
 import { resolveFeishuCredentials } from "./accounts.js";
 import { probeFeishu } from "./probe.js";
 import type { FeishuConfig } from "./types.js";
 
 const channel = "feishu" as const;
 
-function setFeishuDmPolicy(cfg: ClawdbotConfig, dmPolicy: DmPolicy): ClawdbotConfig {
+function setFeishuDmPolicy(cfg: ErnOSConfig, dmPolicy: DmPolicy): ErnOSConfig {
   const allowFrom =
     dmPolicy === "open"
       ? addWildcardAllowFrom(cfg.channels?.feishu?.allowFrom)?.map((entry) => String(entry))
@@ -30,7 +30,7 @@ function setFeishuDmPolicy(cfg: ClawdbotConfig, dmPolicy: DmPolicy): ClawdbotCon
   };
 }
 
-function setFeishuAllowFrom(cfg: ClawdbotConfig, allowFrom: string[]): ClawdbotConfig {
+function setFeishuAllowFrom(cfg: ErnOSConfig, allowFrom: string[]): ErnOSConfig {
   return {
     ...cfg,
     channels: {
@@ -51,9 +51,9 @@ function parseAllowFromInput(raw: string): string[] {
 }
 
 async function promptFeishuAllowFrom(params: {
-  cfg: ClawdbotConfig;
+  cfg: ErnOSConfig;
   prompter: WizardPrompter;
-}): Promise<ClawdbotConfig> {
+}): Promise<ErnOSConfig> {
   const existing = params.cfg.channels?.feishu?.allowFrom ?? [];
   await params.prompter.note(
     [
@@ -124,9 +124,9 @@ async function promptFeishuCredentials(prompter: WizardPrompter): Promise<{
 }
 
 function setFeishuGroupPolicy(
-  cfg: ClawdbotConfig,
+  cfg: ErnOSConfig,
   groupPolicy: "open" | "allowlist" | "disabled",
-): ClawdbotConfig {
+): ErnOSConfig {
   return {
     ...cfg,
     channels: {
@@ -140,7 +140,7 @@ function setFeishuGroupPolicy(
   };
 }
 
-function setFeishuGroupAllowFrom(cfg: ClawdbotConfig, groupAllowFrom: string[]): ClawdbotConfig {
+function setFeishuGroupAllowFrom(cfg: ErnOSConfig, groupAllowFrom: string[]): ErnOSConfig {
   return {
     ...cfg,
     channels: {

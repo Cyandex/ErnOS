@@ -2,11 +2,11 @@ import path from "node:path";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
 import { loadModelCatalog } from "../agents/model-catalog.js";
-import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
+import { runWithObserverAudit as runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { loadSessionStore } from "../config/sessions.js";
 
 export { loadModelCatalog } from "../agents/model-catalog.js";
-export { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
+export { runWithObserverAudit as runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 
 export const MAIN_SESSION_KEY = "agent:main:main";
 
@@ -57,10 +57,10 @@ export async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise
     },
     {
       env: {
-        OPENCLAW_AGENT_DIR: (home) => path.join(home, ".openclaw", "agent"),
-        PI_CODING_AGENT_DIR: (home) => path.join(home, ".openclaw", "agent"),
+        ERNOS_AGENT_DIR: (home) => path.join(home, ".ernos", "agent"),
+        PI_CODING_AGENT_DIR: (home) => path.join(home, ".ernos", "agent"),
       },
-      prefix: "openclaw-reply-",
+      prefix: "ernos-reply-",
     },
   );
 }
@@ -77,7 +77,7 @@ export function makeWhatsAppDirectiveConfig(
   return {
     agents: {
       defaults: {
-        workspace: path.join(home, "openclaw"),
+        workspace: path.join(home, "ernos"),
         ...defaults,
       },
     },
@@ -148,7 +148,7 @@ export function makeRestrictedElevatedDisabledConfig(home: string) {
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: path.join(home, "openclaw"),
+        workspace: path.join(home, "ernos"),
       },
       list: [
         {

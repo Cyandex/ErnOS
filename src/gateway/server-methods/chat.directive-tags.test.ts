@@ -114,6 +114,7 @@ function createChatContext(): Pick<
   | "removeChatRun"
   | "dedupe"
   | "registerToolEventRecipient"
+  | "subscribeChatSession"
   | "logGateway"
 > {
   return {
@@ -127,6 +128,7 @@ function createChatContext(): Pick<
     removeChatRun: vi.fn(),
     dedupe: new Map(),
     registerToolEventRecipient: vi.fn(),
+    subscribeChatSession: vi.fn(),
     logGateway: {
       warn: vi.fn(),
       debug: vi.fn(),
@@ -188,7 +190,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
   });
 
   it("registers tool-event recipients for clients advertising tool-events capability", async () => {
-    createTranscriptFixture("openclaw-chat-send-tool-events-");
+    createTranscriptFixture("ernos-chat-send-tool-events-");
     mockState.finalText = "ok";
     mockState.triggerAgentRunStart = true;
     mockState.agentRunId = "run-current";
@@ -227,7 +229,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
   });
 
   it("does not register tool-event recipients without tool-events capability", async () => {
-    createTranscriptFixture("openclaw-chat-send-tool-events-off-");
+    createTranscriptFixture("ernos-chat-send-tool-events-off-");
     mockState.finalText = "ok";
     mockState.triggerAgentRunStart = true;
     mockState.agentRunId = "run-no-cap";
@@ -250,7 +252,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
   });
 
   it("chat.inject keeps message defined when directive tag is the only content", async () => {
-    createTranscriptFixture("openclaw-chat-inject-directive-only-");
+    createTranscriptFixture("ernos-chat-inject-directive-only-");
     const respond = vi.fn();
     const context = createChatContext();
 
@@ -279,7 +281,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
   });
 
   it("chat.send non-streaming final keeps message defined for directive-only assistant text", async () => {
-    createTranscriptFixture("openclaw-chat-send-directive-only-");
+    createTranscriptFixture("ernos-chat-send-directive-only-");
     mockState.finalText = "[[reply_to_current]]";
     const respond = vi.fn();
     const context = createChatContext();
@@ -301,7 +303,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
   });
 
   it("chat.inject strips external untrusted wrapper metadata from final payload text", async () => {
-    createTranscriptFixture("openclaw-chat-inject-untrusted-meta-");
+    createTranscriptFixture("ernos-chat-inject-untrusted-meta-");
     const respond = vi.fn();
     const context = createChatContext();
 
@@ -324,7 +326,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
   });
 
   it("chat.send non-streaming final strips external untrusted wrapper metadata from final payload text", async () => {
-    createTranscriptFixture("openclaw-chat-send-untrusted-meta-");
+    createTranscriptFixture("ernos-chat-send-untrusted-meta-");
     mockState.finalText = `hello\n\n${UNTRUSTED_CONTEXT_SUFFIX}`;
     const respond = vi.fn();
     const context = createChatContext();

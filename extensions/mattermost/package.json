@@ -1,9 +1,9 @@
 {
-  "name": "@openclaw/mattermost",
+  "name": "@ernos/mattermost",
   "version": "2026.2.27",
-  "description": "OpenClaw Mattermost channel plugin",
+  "description": "ErnOS Mattermost channel plugin",
   "type": "module",
-  "openclaw": {
+  "ernos": {
     "extensions": [
       "./index.ts"
     ],
@@ -17,7 +17,7 @@
       "order": 65
     },
     "install": {
-      "npmSpec": "@openclaw/mattermost",
+      "npmSpec": "@ernos/mattermost",
       "localPath": "extensions/mattermost",
       "defaultChoice": "npm"
     }

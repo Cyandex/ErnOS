@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import type { ErnOSConfig } from "ernos/plugin-sdk";
 import {
   isRequestBodyLimitError,
   readRequestBodyWithLimit,
@@ -9,7 +9,7 @@ import {
   requestBodyErrorToText,
   resolveSingleWebhookTarget,
   resolveWebhookTargets,
-} from "openclaw/plugin-sdk";
+} from "ernos/plugin-sdk";
 import {
   normalizeWebhookMessage,
   normalizeWebhookReaction,
@@ -126,10 +126,7 @@ type BlueBubblesDebouncer = {
  */
 const targetDebouncers = new Map<WebhookTarget, BlueBubblesDebouncer>();
 
-function resolveBlueBubblesDebounceMs(
-  config: OpenClawConfig,
-  core: BlueBubblesCoreRuntime,
-): number {
+function resolveBlueBubblesDebounceMs(config: ErnOSConfig, core: BlueBubblesCoreRuntime): number {
   const inbound = config.messages?.inbound;
   const hasExplicitDebounce =
     typeof inbound?.debounceMs === "number" || typeof inbound?.byChannel?.bluebubbles === "number";

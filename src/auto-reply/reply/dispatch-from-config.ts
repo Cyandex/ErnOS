@@ -1,5 +1,5 @@
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { ErnOSConfig } from "../../config/config.js";
 import { loadSessionStore, resolveStorePath, type SessionEntry } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
@@ -60,7 +60,7 @@ const isInboundAudioContext = (ctx: FinalizedMsgContext): boolean => {
 
 const resolveSessionStoreEntry = (
   ctx: FinalizedMsgContext,
-  cfg: OpenClawConfig,
+  cfg: ErnOSConfig,
 ): {
   sessionKey?: string;
   entry?: SessionEntry;
@@ -93,7 +93,7 @@ export type DispatchFromConfigResult = {
 
 export async function dispatchReplyFromConfig(params: {
   ctx: FinalizedMsgContext;
-  cfg: OpenClawConfig;
+  cfg: ErnOSConfig;
   dispatcher: ReplyDispatcher;
   replyOptions?: Omit<GetReplyOptions, "onToolResult" | "onBlockReply">;
   replyResolver?: typeof getReplyFromConfig;
@@ -471,14 +471,19 @@ export async function dispatchReplyFromConfig(params: {
 
     let queuedFinal = false;
     let routedFinalCount = 0;
-    for (const reply of replies) {
+    for (let i = 0; i < replies.length; i++) {
+      const reply = replies[i];
       // Suppress reasoning payloads from channel delivery — channels using this
       // generic dispatch path do not have a dedicated reasoning lane.
       if (shouldSuppressReasoningPayload(reply)) {
         continue;
       }
+      // Tag all payloads except the last as intermediate so channel handlers
+      // (e.g. Discord CognitionTracker) can buffer them instead of sending
+      // them as standalone messages.
+      const taggedReply = i < replies.length - 1 ? { ...reply, isIntermediate: true } : reply;
       const ttsReply = await maybeApplyTtsToPayload({
-        payload: reply,
+        payload: taggedReply,
         cfg,
         channel: ttsChannel,
         kind: "final",

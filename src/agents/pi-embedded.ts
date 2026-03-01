@@ -12,5 +12,6 @@ export {
   queueEmbeddedPiMessage,
   resolveEmbeddedSessionLane,
   runEmbeddedPiAgent,
+  runWithObserverAudit,
   waitForEmbeddedPiRunEnd,
 } from "./pi-embedded-runner.js";

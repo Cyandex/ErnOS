@@ -1,5 +1,5 @@
 ---
-summary: "CLI reference for `openclaw system` (system events, heartbeat, presence)"
+summary: "CLI reference for `ernos system` (system events, heartbeat, presence)"
 read_when:
   - You want to enqueue a system event without creating a cron job
   - You need to enable or disable heartbeats
@@ -7,7 +7,7 @@ read_when:
 title: "system"
 ---
 
-# `openclaw system`
+# `ernos system`
 
 System-level helpers for the Gateway: enqueue system events, control heartbeats,
 and view presence.
@@ -15,10 +15,10 @@ and view presence.
 ## Common commands
 
 ```bash
-openclaw system event --text "Check for urgent follow-ups" --mode now
-openclaw system heartbeat enable
-openclaw system heartbeat last
-openclaw system presence
+ernos system event --text "Check for urgent follow-ups" --mode now
+ernos system heartbeat enable
+ernos system heartbeat last
+ernos system presence
 ```
 
 ## `system event`

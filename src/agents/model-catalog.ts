@@ -1,7 +1,7 @@
-import { type OpenClawConfig, loadConfig } from "../config/config.js";
+import { type ErnOSConfig, loadConfig } from "../config/config.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { resolveOpenClawAgentDir } from "./agent-paths.js";
-import { ensureOpenClawModelsJson } from "./models-config.js";
+import { resolveErnOSAgentDir } from "./agent-paths.js";
+import { ensureErnOSModelsJson } from "./models-config.js";
 
 const log = createSubsystemLogger("model-catalog");
 
@@ -70,7 +70,7 @@ function normalizeConfiguredModelInput(input: unknown): Array<"text" | "image"> 
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function readConfiguredOptInProviderModels(config: OpenClawConfig): ModelCatalogEntry[] {
+function readConfiguredOptInProviderModels(config: ErnOSConfig): ModelCatalogEntry[] {
   const providers = config.models?.providers;
   if (!providers || typeof providers !== "object") {
     return [];
@@ -119,7 +119,7 @@ function readConfiguredOptInProviderModels(config: OpenClawConfig): ModelCatalog
 }
 
 function mergeConfiguredOptInProviderModels(params: {
-  config: OpenClawConfig;
+  config: ErnOSConfig;
   models: ModelCatalogEntry[];
 }): void {
   const configured = readConfiguredOptInProviderModels(params.config);
@@ -155,7 +155,7 @@ export function __setModelCatalogImportForTest(loader?: () => Promise<PiSdkModul
 }
 
 export async function loadModelCatalog(params?: {
-  config?: OpenClawConfig;
+  config?: ErnOSConfig;
   useCache?: boolean;
 }): Promise<ModelCatalogEntry[]> {
   if (params?.useCache === false) {
@@ -177,13 +177,13 @@ export async function loadModelCatalog(params?: {
       });
     try {
       const cfg = params?.config ?? loadConfig();
-      await ensureOpenClawModelsJson(cfg);
+      await ensureErnOSModelsJson(cfg);
       // IMPORTANT: keep the dynamic import *inside* the try/catch.
       // If this fails once (e.g. during a pnpm install that temporarily swaps node_modules),
       // we must not poison the cache with a rejected promise (otherwise all channel handlers
       // will keep failing until restart).
       const piSdk = await importPiSdk();
-      const agentDir = resolveOpenClawAgentDir();
+      const agentDir = resolveErnOSAgentDir();
       const { join } = await import("node:path");
       const authStorage = piSdk.discoverAuthStorage(agentDir);
       const registry = new (piSdk.ModelRegistry as unknown as {
@@ -242,10 +242,48 @@ export async function loadModelCatalog(params?: {
 }
 
 /**
+ * Known Ollama vision model family patterns.
+ * Many Ollama vision models incorrectly report input: ["text"] through
+ * the pi-ai library, even though they natively support image input.
+ */
+const KNOWN_VISION_MODEL_PATTERNS = [
+  /^qwen.*3\.5/i,
+  /^qwen2.*vl/i,
+  /^llava/i,
+  /^llama.*vision/i,
+  /^gemma.*3/i,
+  /^minicpm.*v/i,
+  /^moondream/i,
+  /^bakllava/i,
+  /^cogvlm/i,
+  /^deepseek.*vl/i,
+  /^internvl/i,
+  /^phi.*vision/i,
+];
+
+/**
+ * Checks if a model ID matches a known vision model family.
+ */
+function isKnownVisionModel(modelId: string): boolean {
+  const baseName = modelId.split(":")[0].toLowerCase();
+  return KNOWN_VISION_MODEL_PATTERNS.some((pattern) => pattern.test(baseName));
+}
+
+/**
  * Check if a model supports image input based on its catalog entry.
+ * Falls back to name-based detection for known vision model families
+ * when the pi-ai library incorrectly reports text-only input.
  */
 export function modelSupportsVision(entry: ModelCatalogEntry | undefined): boolean {
-  return entry?.input?.includes("image") ?? false;
+  if (!entry) {
+    return false;
+  }
+  if (entry.input?.includes("image")) {
+    return true;
+  }
+  // Many Ollama vision models (qwen3.5, llava, etc.) report input: ["text"]
+  // even though they natively support image input.
+  return isKnownVisionModel(entry.id);
 }
 
 /**

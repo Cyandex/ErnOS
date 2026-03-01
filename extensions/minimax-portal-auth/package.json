@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/minimax-portal-auth",
+  "name": "@ernos/minimax-portal-auth",
   "version": "2026.2.27",
   "private": true,
-  "description": "OpenClaw MiniMax Portal OAuth provider plugin",
+  "description": "ErnOS MiniMax Portal OAuth provider plugin",
   "type": "module",
-  "openclaw": {
+  "ernos": {
     "extensions": [
       "./index.ts"
     ]

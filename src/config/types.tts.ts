@@ -1,4 +1,4 @@
-export type TtsProvider = "elevenlabs" | "openai" | "edge";
+export type TtsProvider = "elevenlabs" | "openai" | "edge" | "kokoro";
 
 export type TtsMode = "final" | "all";
 
@@ -56,8 +56,14 @@ export type TtsConfig = {
   /** OpenAI configuration. */
   openai?: {
     apiKey?: string;
+    baseUrl?: string;
     model?: string;
     voice?: string;
+  };
+  /** Kokoro ONNX Native configuration. */
+  kokoro?: {
+    voice?: string;
+    speed?: number;
   };
   /** Microsoft Edge (node-edge-tts) configuration. */
   edge?: {

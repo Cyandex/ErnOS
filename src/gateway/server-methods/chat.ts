@@ -64,7 +64,7 @@ type AbortedPartialSnapshot = {
   abortOrigin: AbortOrigin;
 };
 
-const CHAT_HISTORY_TEXT_MAX_CHARS = 12_000;
+const CHAT_HISTORY_TEXT_MAX_CHARS = 120_000;
 const CHAT_HISTORY_MAX_SINGLE_MESSAGE_BYTES = 128 * 1024;
 const CHAT_HISTORY_OVERSIZED_PLACEHOLDER = "[chat.history omitted: message too large]";
 let chatHistoryPlaceholderEmitCount = 0;
@@ -223,7 +223,7 @@ function buildOversizedHistoryPlaceholder(message?: unknown): Record<string, unk
     role,
     timestamp,
     content: [{ type: "text", text: CHAT_HISTORY_OVERSIZED_PLACEHOLDER }],
-    __openclaw: { truncated: true, reason: "oversized" },
+    __ernos: { truncated: true, reason: "oversized" },
   };
 }
 
@@ -506,6 +506,11 @@ function broadcastChatFinal(params: {
     message: stripInlineDirectiveTagsFromMessageForDisplay(strippedEnvelopeMessage),
   };
   params.context.broadcast("chat", payload);
+  // Scope future events: register this client as a subscriber for this session.
+  // NOTE: broadcastChatFinal is used from chat.send which already subscribes the client.
+  // The broadcast here is intentionally kept as global fallback because the originating
+  // client connId is not available in this helper. The agent event handler's scoped
+  // broadcast (server-chat.ts) handles the primary isolation.
   params.context.nodeSendToSession(params.sessionKey, "chat", payload);
   params.context.agentRunSeq.delete(params.runId);
 }
@@ -530,7 +535,7 @@ function broadcastChatError(params: {
 }
 
 export const chatHandlers: GatewayRequestHandlers = {
-  "chat.history": async ({ params, respond, context }) => {
+  "chat.history": async ({ params, respond, context, client }) => {
     if (!validateChatHistoryParams(params)) {
       respond(
         false,
@@ -546,6 +551,12 @@ export const chatHandlers: GatewayRequestHandlers = {
       sessionKey: string;
       limit?: number;
     };
+    // Register this client as a subscriber for this session so chat events
+    // from agent runs are scoped to them (prevents DM cross-contamination).
+    const connId = typeof client?.connId === "string" ? client.connId : undefined;
+    if (connId) {
+      context.subscribeChatSession(sessionKey, connId);
+    }
     const { cfg, storePath, entry } = loadSessionEntry(sessionKey);
     const sessionId = entry?.sessionId;
     const rawMessages =
@@ -808,7 +819,7 @@ export const chatHandlers: GatewayRequestHandlers = {
       const clientInfo = client?.connect?.client;
       // Inject timestamp so agents know the current date/time.
       // Only BodyForAgent gets the timestamp — Body stays raw for UI display.
-      // See: https://github.com/moltbot/moltbot/issues/3658
+      // See: https://github.com/ernos/ernos/issues/3658
       const stampedMessage = injectTimestamp(parsedMessage, timestampOptsFromConfig(cfg));
 
       const ctx: MsgContext = {
@@ -829,6 +840,12 @@ export const chatHandlers: GatewayRequestHandlers = {
         SenderUsername: clientInfo?.displayName,
         GatewayClientScopes: client?.connect?.scopes,
       };
+      // Register this client as a subscriber for this session so agent run
+      // chat events are scoped to them (prevents DM cross-contamination).
+      const sendConnId = typeof client?.connId === "string" ? client.connId : undefined;
+      if (sendConnId) {
+        context.subscribeChatSession(sessionKey, sendConnId);
+      }
 
       const agentId = resolveSessionAgentId({
         sessionKey,

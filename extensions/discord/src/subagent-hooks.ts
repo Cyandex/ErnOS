@@ -1,10 +1,10 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { ErnOSPluginApi } from "ernos/plugin-sdk";
 import {
   autoBindSpawnedDiscordSubagent,
   listThreadBindingsBySessionKey,
   resolveDiscordAccount,
   unbindThreadBindingsBySessionKey,
-} from "openclaw/plugin-sdk";
+} from "ernos/plugin-sdk";
 
 function summarizeError(err: unknown): string {
   if (err instanceof Error) {
@@ -16,7 +16,7 @@ function summarizeError(err: unknown): string {
   return "error";
 }
 
-export function registerDiscordSubagentHooks(api: OpenClawPluginApi) {
+export function registerDiscordSubagentHooks(api: ErnOSPluginApi) {
   const resolveThreadBindingFlags = (accountId?: string) => {
     const account = resolveDiscordAccount({
       cfg: api.config,

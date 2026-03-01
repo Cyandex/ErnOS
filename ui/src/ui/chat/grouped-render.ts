@@ -12,6 +12,7 @@ import {
   formatReasoningMarkdown,
 } from "./message-extract.ts";
 import { isToolResultMessage, normalizeRoleForGrouping } from "./message-normalizer.ts";
+import { renderSpeakButton } from "./speak-button.ts";
 import { extractToolCards, renderToolCardSidebar } from "./tool-cards.ts";
 
 type ImageBlock = {
@@ -268,6 +269,7 @@ function renderGroupedMessage(
   return html`
     <div class="${bubbleClasses}">
       ${canCopyMarkdown ? renderCopyAsMarkdownButton(markdown!) : nothing}
+      ${canCopyMarkdown ? renderSpeakButton(markdown!) : nothing}
       ${renderMessageImages(images)}
       ${
         reasoningMarkdown

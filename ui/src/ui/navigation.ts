@@ -7,7 +7,7 @@ export const TAB_GROUPS = [
     label: "control",
     tabs: ["overview", "channels", "instances", "sessions", "usage", "cron"],
   },
-  { label: "agent", tabs: ["agents", "skills", "nodes"] },
+  { label: "agent", tabs: ["agents", "skills", "nodes", "knowledge-graph"] },
   { label: "settings", tabs: ["config", "debug", "logs"] },
 ] as const;
 
@@ -24,7 +24,8 @@ export type Tab =
   | "chat"
   | "config"
   | "debug"
-  | "logs";
+  | "logs"
+  | "knowledge-graph";
 
 const TAB_PATHS: Record<Tab, string> = {
   agents: "/agents",
@@ -40,6 +41,7 @@ const TAB_PATHS: Record<Tab, string> = {
   config: "/config",
   debug: "/debug",
   logs: "/logs",
+  "knowledge-graph": "/knowledge-graph",
 };
 
 const PATH_TO_TAB = new Map(Object.entries(TAB_PATHS).map(([tab, path]) => [path, tab as Tab]));
@@ -151,6 +153,8 @@ export function iconForTab(tab: Tab): IconName {
       return "bug";
     case "logs":
       return "scrollText";
+    case "knowledge-graph":
+      return "globe";
     default:
       return "folder";
   }

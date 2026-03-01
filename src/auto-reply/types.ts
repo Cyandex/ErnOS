@@ -82,4 +82,8 @@ export type ReplyPayload = {
   isReasoning?: boolean;
   /** Channel-specific payload data (per-channel envelope). */
   channelData?: Record<string, unknown>;
+  /** When true, this payload is an intermediate thought (not the final answer).
+   *  Channel handlers may route it to a live-updating embed instead of sending
+   *  it as a standalone message. */
+  isIntermediate?: boolean;
 };

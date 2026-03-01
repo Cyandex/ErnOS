@@ -97,15 +97,15 @@ describe("daemon-cli coverage", () => {
 
   beforeEach(() => {
     envSnapshot = captureEnv([
-      "OPENCLAW_STATE_DIR",
-      "OPENCLAW_CONFIG_PATH",
-      "OPENCLAW_GATEWAY_PORT",
-      "OPENCLAW_PROFILE",
+      "ERNOS_STATE_DIR",
+      "ERNOS_CONFIG_PATH",
+      "ERNOS_GATEWAY_PORT",
+      "ERNOS_PROFILE",
     ]);
-    process.env.OPENCLAW_STATE_DIR = "/tmp/openclaw-cli-state";
-    process.env.OPENCLAW_CONFIG_PATH = "/tmp/openclaw-cli-state/openclaw.json";
-    delete process.env.OPENCLAW_GATEWAY_PORT;
-    delete process.env.OPENCLAW_PROFILE;
+    process.env.ERNOS_STATE_DIR = "/tmp/ernos-cli-state";
+    process.env.ERNOS_CONFIG_PATH = "/tmp/ernos-cli-state/ernos.json";
+    delete process.env.ERNOS_GATEWAY_PORT;
+    delete process.env.ERNOS_PROFILE;
     serviceReadCommand.mockResolvedValue(null);
   });
 
@@ -133,12 +133,12 @@ describe("daemon-cli coverage", () => {
     serviceReadCommand.mockResolvedValueOnce({
       programArguments: ["/bin/node", "cli", "gateway", "--port", "19001"],
       environment: {
-        OPENCLAW_PROFILE: "dev",
-        OPENCLAW_STATE_DIR: "/tmp/openclaw-daemon-state",
-        OPENCLAW_CONFIG_PATH: "/tmp/openclaw-daemon-state/openclaw.json",
-        OPENCLAW_GATEWAY_PORT: "19001",
+        ERNOS_PROFILE: "dev",
+        ERNOS_STATE_DIR: "/tmp/ernos-daemon-state",
+        ERNOS_CONFIG_PATH: "/tmp/ernos-daemon-state/ernos.json",
+        ERNOS_GATEWAY_PORT: "19001",
       },
-      sourcePath: "/tmp/ai.openclaw.gateway.plist",
+      sourcePath: "/tmp/ai.ernos.gateway.plist",
     });
 
     await runDaemonCommand(["daemon", "status", "--json"]);
