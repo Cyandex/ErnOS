@@ -107,6 +107,37 @@ describe("tool-policy", () => {
     expect(applyOwnerOnlyToolPolicy(tools, false)).toEqual([]);
     expect(applyOwnerOnlyToolPolicy(tools, true)).toHaveLength(1);
   });
+
+  it("denies non-owner-safe tools (subagents, nodes, skill_forge, outreach) for non-owners", () => {
+    const tools = [
+      { name: "memory_search" },
+      { name: "web_search" },
+      { name: "browser" },
+      { name: "subagents" },
+      { name: "nodes" },
+      { name: "skill_forge" },
+      { name: "outreach" },
+      { name: "image" },
+    ] as unknown as AnyAgentTool[];
+    const filtered = applyOwnerOnlyToolPolicy(tools, false);
+    const names = filtered.map((t) => t.name);
+    expect(names).toEqual(["memory_search", "web_search", "browser", "image"]);
+  });
+
+  it("gives owners full unrestricted access to all tools", () => {
+    const tools = [
+      { name: "memory_search" },
+      { name: "exec" },
+      { name: "subagents" },
+      { name: "nodes" },
+      { name: "skill_forge" },
+      { name: "outreach" },
+      { name: "cron", ownerOnly: true },
+      { name: "gateway", ownerOnly: true },
+    ] as unknown as AnyAgentTool[];
+    const filtered = applyOwnerOnlyToolPolicy(tools, true);
+    expect(filtered).toHaveLength(8);
+  });
 });
 
 describe("TOOL_POLICY_CONFORMANCE", () => {
