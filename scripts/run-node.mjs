@@ -271,6 +271,25 @@ export async function runNodeMain(params = {}) {
   if (buildRes.exitCode !== 0 && buildRes.exitCode !== null) {
     return buildRes.exitCode;
   }
+
+  // Patch circular ESM imports: rolldown generates circular dependencies
+  // between entry.js and chunk files where runtime helpers (__esmMin,
+  // __exportAll) are imported from entry.js but aren't initialized yet.
+  // Run the comprehensive patch script to inline these helpers.
+  try {
+    const patchScript = path.join(deps.cwd, "scripts", "patch-entry-esm-init.ts");
+    if (deps.fs.existsSync(patchScript)) {
+      const patch = deps.spawn("node", ["--import", "tsx", patchScript], {
+        cwd: deps.cwd,
+        env: deps.env,
+        stdio: "inherit",
+      });
+      await new Promise((resolve) => patch.on("exit", resolve));
+    }
+  } catch {
+    // Best-effort; if patching fails the build may still work.
+  }
+
   writeBuildStamp(deps);
   return await runErnOS(deps);
 }
