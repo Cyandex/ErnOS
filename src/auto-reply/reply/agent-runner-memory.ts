@@ -7,6 +7,7 @@ import type { ErnOSConfig } from "../../config/config.js";
 import { type SessionEntry, updateSessionStoreEntry } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
+import { extractPeerIdFromSessionKey } from "../../routing/session-key.js";
 import type { TemplateContext } from "../templating.js";
 import type { VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions } from "../types.js";
@@ -119,11 +120,13 @@ export async function runMemoryFlushIfNeeded(params: {
           prompt: resolveMemoryFlushPromptForRun({
             prompt: memoryFlushSettings.prompt,
             cfg: params.cfg,
+            peerId: extractPeerIdFromSessionKey(params.sessionKey),
           }),
           extraSystemPrompt: flushSystemPrompt,
-          onAgentEvent: (evt: any) => {
-            if (evt.stream === "compaction") {
-              const phase = typeof evt.data.phase === "string" ? evt.data.phase : "";
+          onAgentEvent: (evt: unknown) => {
+            const event = evt as { stream?: string; data?: { phase?: string } };
+            if (event.stream === "compaction") {
+              const phase = typeof event.data?.phase === "string" ? event.data.phase : "";
               if (phase === "end") {
                 memoryCompactionCompleted = true;
               }

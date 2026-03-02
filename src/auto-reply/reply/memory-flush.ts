@@ -10,7 +10,7 @@ export const DEFAULT_MEMORY_FLUSH_SOFT_TOKENS = 4000;
 
 export const DEFAULT_MEMORY_FLUSH_PROMPT = [
   "Pre-compaction memory flush.",
-  "Store durable memories now (use memory/YYYY-MM-DD.md; create memory/ if needed).",
+  "Store durable memories now (use MEMORY_PATH; create the directory if needed).",
   "IMPORTANT: If the file already exists, APPEND new content only and do not overwrite existing entries.",
   `If nothing to store, reply with ${SILENT_REPLY_TOKEN}.`,
 ].join(" ");
@@ -41,11 +41,19 @@ export function resolveMemoryFlushPromptForRun(params: {
   prompt: string;
   cfg?: ErnOSConfig;
   nowMs?: number;
+  peerId?: string | null;
 }): string {
   const nowMs = Number.isFinite(params.nowMs) ? (params.nowMs as number) : Date.now();
   const { userTimezone, timeLine } = resolveCronStyleNow(params.cfg ?? {}, nowMs);
   const dateStamp = formatDateStampInTimezone(nowMs, userTimezone);
-  const withDate = params.prompt.replaceAll("YYYY-MM-DD", dateStamp).trimEnd();
+  // Scope memory path per-user when a peerId is available
+  const memoryPath = params.peerId
+    ? `memory/users/${params.peerId}/${dateStamp}.md`
+    : `memory/${dateStamp}.md`;
+  const withDate = params.prompt
+    .replaceAll("YYYY-MM-DD", dateStamp)
+    .replaceAll("MEMORY_PATH", memoryPath)
+    .trimEnd();
   if (!withDate) {
     return timeLine;
   }
