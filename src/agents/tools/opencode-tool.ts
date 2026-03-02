@@ -65,7 +65,7 @@ export function createOpencodeAgentTool(options: { sessionKey?: string }): AnyAg
           // 1. Create a Stateful Session
           const sessionRes = await opencode.client.session.create({
             body: {
-              title: `ErnOS Task Hook: ${params.task.slice(0, 30)}...`,
+              title: `ErnOS Task Hook: ${String(params.task).slice(0, 30)}...`,
             },
             query: { directory: targetDir },
           });
@@ -85,7 +85,7 @@ export function createOpencodeAgentTool(options: { sessionKey?: string }): AnyAg
             path: { id: sessionId },
             query: { directory: targetDir },
             body: {
-              agent: params.agent || "build",
+              agent: typeof params.agent === "string" ? params.agent : "build",
               parts: [{ type: "text", text: contextualizedTask }],
             },
           });
@@ -130,8 +130,8 @@ export function createOpencodeAgentTool(options: { sessionKey?: string }): AnyAg
             if (lastMsg) {
               const text = lastMsg.parts
                 .map(
-                  (p: { text?: string; content?: string }) =>
-                    p.text || p.content || JSON.stringify(p),
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  (p: any) => p.text || p.content || JSON.stringify(p),
                 )
                 .join("\\n");
               summary += `Final Agent Note:\n${text}\n`;

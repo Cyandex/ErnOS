@@ -275,7 +275,7 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
         timeoutMs:
           typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs)
             ? params.timeoutMs
-            : 60_000,
+            : 15 * 60_000, // Increased timeout to 15 minutes for long-running jobs
       };
 
       switch (action) {
