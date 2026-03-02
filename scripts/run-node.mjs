@@ -231,6 +231,28 @@ export async function runNodeMain(params = {}) {
   }
 
   logRunner("Building TypeScript (dist is stale).", deps);
+
+  // Clean stale JS chunks before rebuilding. The --no-clean tsdown flag
+  // preserves old chunk files whose minified symbol aliases may no longer
+  // match the freshly generated entry/index files, causing "is not a
+  // function" runtime errors (e.g. __esmMin). Removing .js files forces
+  // rolldown to regenerate all chunks with consistent symbol mappings.
+  try {
+    const distEntries = deps.fs.readdirSync(deps.distRoot, { withFileTypes: true });
+    for (const entry of distEntries) {
+      if (entry.isFile() && entry.name.endsWith(".js")) {
+        try {
+          deps.fs.unlinkSync(path.join(deps.distRoot, entry.name));
+        } catch {
+          // Best-effort; stale files may still cause issues but the build
+          // will overwrite most of them anyway.
+        }
+      }
+    }
+  } catch {
+    // dist/ may not exist yet; that's fine.
+  }
+
   const buildCmd = deps.platform === "win32" ? "cmd.exe" : "pnpm";
   const buildArgs =
     deps.platform === "win32" ? ["/d", "/s", "/c", "pnpm", ...compilerArgs] : compilerArgs;
