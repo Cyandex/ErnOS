@@ -734,7 +734,7 @@ export async function qwenTTS(params: {
 }): Promise<void> {
   const { text, outputPath, config } = params;
 
-  const speaker = config?.speaker || "Aidan";
+  const speaker = config?.speaker || "eric";
   const language = config?.language || "Auto";
   const instruct = config?.instruct || "";
 

@@ -22,13 +22,15 @@ import re
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 SPEAKERS = {
-    "Chelsie": "Young adult female, English-native, warm and clear",
-    "Ethan": "Young adult male, English-native, confident",
-    "Ryan": "Adult male, English-native, calm and measured",
-    "Vivian": "Young adult female, Chinese-native, expressive",
-    "Luke": "Adult male, English-native, deep and authoritative",
-    "Laura": "Young adult female, English-native, gentle",
-    "Aidan": "Adult male, English-native, mature and steady",
+    "aiden": "Adult male, English-native, mature and steady",
+    "dylan": "Young adult male, English-native, energetic",
+    "eric": "Adult male, English-native, deep and authoritative",
+    "ono_anna": "Young adult female, Japanese-native, expressive",
+    "ryan": "Adult male, English-native, calm and measured",
+    "serena": "Young adult female, English-native, warm",
+    "sohee": "Young adult female, Korean-native, clear",
+    "uncle_fu": "Older male, Chinese-native, warm and wise",
+    "vivian": "Young adult female, Chinese-native, expressive",
 }
 
 LANGUAGES = [
