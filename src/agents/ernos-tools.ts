@@ -202,7 +202,10 @@ export function createErnOSTools(options?: {
       label: "Image Gen",
       name: "image_gen",
       description:
-        "Generate an image from a text prompt using the local Flux model (diffusers on MPS). Runs locally — no cloud API needed.",
+        "Generate an image from a text prompt using the local Flux model (diffusers on MPS). " +
+        "Runs locally — no cloud API needed. The image is automatically delivered to the user " +
+        "as a media attachment. Do NOT include file paths, markdown image links, or filenames " +
+        "in your reply — just describe what was generated conversationally.",
       parameters: {
         type: "object" as const,
         properties: {
@@ -227,7 +230,7 @@ export function createErnOSTools(options?: {
           return { content: [{ type: "text", text: `Image generation failed: ${result.error}` }] };
         }
         return {
-          content: [{ type: "text", text: `Image generated successfully.\nMEDIA:${result.path}` }],
+          content: [{ type: "text", text: `Image generated and delivered to the channel.\nMEDIA:${result.path}` }],
           details: { path: result.path, provider: result.provider },
         };
       },
