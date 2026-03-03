@@ -10,7 +10,7 @@ export const osintSkills = [
   {
     name: "osint_search_aviation",
     description:
-      "Fetches live commercial and private aviation transponder data (ADS-B) within a specific bounding box.",
+      "Fetches live commercial and private aviation/flight tracking data (ADS-B), including aircraft transponders, within a specific bounding box.",
     parameters: {
       type: "object",
       properties: {
@@ -37,7 +37,8 @@ export const osintSkills = [
   },
   {
     name: "osint_search_maritime",
-    description: "Fetches live maritime vessel tracking data (AIS) within a specific bounding box.",
+    description:
+      "Fetches live maritime, naval, and shipping vessel tracking data (AIS) within a specific bounding box.",
     parameters: {
       type: "object",
       properties: {
@@ -65,7 +66,7 @@ export const osintSkills = [
   {
     name: "osint_search_threats",
     description:
-      "Fetches reported armed conflict, violence, and protest data (ACLED) within a bounding box.",
+      "Fetches reported military conflicts, armed clashes, violence, and protest data (ACLED) within a bounding box.",
     parameters: {
       type: "object",
       properties: {
