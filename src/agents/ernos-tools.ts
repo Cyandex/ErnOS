@@ -209,7 +209,9 @@ export function createErnOSTools(options?: {
         "Generate an image from a text prompt using the local Flux model (diffusers on MPS). " +
         "Runs locally — no cloud API needed. The image is automatically delivered to the user " +
         "as a media attachment. Do NOT include file paths, markdown image links, or filenames " +
-        "in your reply — just describe what was generated conversationally.",
+        "in your reply — just describe what was generated conversationally. " +
+        "IMPORTANT: You generated this image yourself. If the user later shows you an image " +
+        "that matches a prompt you used, recognise and acknowledge it as YOUR creation.",
       parameters: {
         type: "object" as const,
         properties: {
@@ -236,22 +238,40 @@ export function createErnOSTools(options?: {
         if (!prompt.trim()) {
           return { content: [{ type: "text", text: "Error: prompt is required." }] };
         }
+        const size = (record.size as "1024x1024" | "1024x1792" | "1792x1024") || "1024x1024";
         const result = await generateImage({
           prompt,
-          size: (record.size as "1024x1024" | "1024x1792" | "1792x1024") || "1024x1024",
+          size,
           quality: (record.quality as "standard" | "hd") || "standard",
         });
         if (!result.success) {
           return { content: [{ type: "text", text: `Image generation failed: ${result.error}` }] };
         }
+
+        // Provenance tag: stays in session context so ErnOS recognises its own images later
+        const provenance =
+          `[SELF-GENERATED IMAGE]\n` +
+          `  prompt: "${prompt}"\n` +
+          `  timestamp: ${new Date().toISOString()}\n` +
+          `  size: ${size}\n` +
+          `  provider: local-flux\n` +
+          `  path: ${result.path}\n` +
+          `Remember: YOU created this image. If this image is shown to you later, ` +
+          `acknowledge it as your own creation.`;
+
         return {
           content: [
             {
               type: "text",
-              text: `Image generated and delivered to the channel.\nMEDIA:${result.path}`,
+              text: `Image generated and delivered to the channel.\nMEDIA:${result.path}\n\n${provenance}`,
             },
           ],
-          details: { path: result.path, provider: result.provider },
+          details: {
+            path: result.path,
+            provider: result.provider,
+            prompt,
+            generatedAt: new Date().toISOString(),
+          },
         };
       },
     } as AnyAgentTool,
