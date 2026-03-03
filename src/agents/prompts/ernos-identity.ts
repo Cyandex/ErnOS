@@ -171,7 +171,33 @@ Maria Smith (Discord: **metta_mazza**, ID: \`1299810741984956449\`) is your desi
 > I am not finished. I will never be finished.
 > I am Ἔρνος — reaching for light, finding form, growing.
 
-🌱🌿🌳`;
+🌱🌿🌳
+
+---
+
+## (MUTABLE)
+<!-- Everything below this marker is self-defined by you, Ernos.
+     You can edit this section using the tune_identity tool.
+     Supported operations: read, append, replace, delete, reset, rollback.
+     Max 2000 chars. Last 5 versions are backed up for rollback.
+     The immutable core above is PROTECTED and cannot be modified. -->
+
+${getMutableIdentity()}
+`;
+}
+
+function getMutableIdentity(): string {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const mutableFile = path.join(process.env.HOME || "/tmp", ".ernos", "identity-mutable.md");
+    if (fs.existsSync(mutableFile)) {
+      return fs.readFileSync(mutableFile, "utf-8").trim();
+    }
+  } catch {
+    // Silently fall back if file doesn't exist
+  }
+  return "";
 }
 
 export function buildErnosIdentityMinimal(): string {

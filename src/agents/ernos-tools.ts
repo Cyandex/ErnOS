@@ -32,6 +32,8 @@ import { createSwarmTools } from "./tools/swarm-tools-def.js";
 import { createTapeTools } from "./tools/tape-tools-def.js";
 import { createTtsTool } from "./tools/tts-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
+import { createScienceTool } from "./tools/science-tool.js";
+import { createIdentityTunerTool } from "./tools/identity-tuner-tool.js";
 import { resolveWorkspaceRoot } from "./workspace-dir.js";
 
 export function createErnOSTools(options?: {
@@ -235,6 +237,8 @@ export function createErnOSTools(options?: {
         };
       },
     } as AnyAgentTool,
+    createScienceTool(),
+    createIdentityTunerTool(),
   ];
 
   const pluginTools = resolvePluginTools({

@@ -106,7 +106,7 @@ export async function generateImage(params: {
       uvBin,
       args,
       {
-        timeout: 300_000, // 5 minutes
+        timeout: 900_000, // 15 minutes — large images at high res can take 10+ min on MPS
         maxBuffer: 10 * 1024 * 1024,
         env: { ...process.env },
       },
@@ -120,7 +120,7 @@ export async function generateImage(params: {
 
         if (error) {
           const msg = error.killed
-            ? "Local Flux generation timed out after 5 minutes."
+            ? "Local Flux generation timed out after 15 minutes."
             : `Local Flux generation failed: ${error.message}`;
           console.error(`[ImageGen] ${msg}`);
           if (stdout) {

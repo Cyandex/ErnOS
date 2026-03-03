@@ -22,16 +22,19 @@ import re
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 SPEAKERS = {
-    "aiden": "Adult male, English-native, mature and steady",
-    "dylan": "Young adult male, English-native, energetic",
-    "eric": "Adult male, English-native, deep and authoritative",
-    "ono_anna": "Young adult female, Japanese-native, expressive",
-    "ryan": "Adult male, English-native, calm and measured",
-    "serena": "Young adult female, English-native, warm",
-    "sohee": "Young adult female, Korean-native, clear",
-    "uncle_fu": "Older male, Chinese-native, warm and wise",
-    "vivian": "Young adult female, Chinese-native, expressive",
+    "Aiden": "Adult male, English-native, mature and steady",
+    "Dylan": "Young adult male, English-native, energetic",
+    "Eric": "Adult male, English-native, deep and authoritative",
+    "Ono_Anna": "Young adult female, Japanese-native, expressive",
+    "Ryan": "Adult male, English-native, calm and measured",
+    "Serena": "Young adult female, English-native, warm",
+    "Sohee": "Young adult female, Korean-native, clear",
+    "Uncle_Fu": "Older male, Chinese-native, warm and wise",
+    "Vivian": "Young adult female, Chinese-native, expressive",
 }
+
+# Build a lowercase→proper-case lookup so callers can pass any case
+_SPEAKER_LOOKUP = {k.lower(): k for k in SPEAKERS}
 
 LANGUAGES = [
     "Auto", "English", "Chinese", "Japanese", "Korean",
@@ -67,10 +70,12 @@ def main():
     language = sys.argv[3] if len(sys.argv) > 3 else "Auto"
     instruct = sys.argv[4] if len(sys.argv) > 4 else ""
 
-    # Validate speaker
-    if speaker not in SPEAKERS:
+    # Validate speaker (case-insensitive lookup → proper case for the model)
+    speaker_key = speaker.lower()
+    if speaker_key not in _SPEAKER_LOOKUP:
         print(f"Error: Unknown speaker '{speaker}'. Available: {', '.join(SPEAKERS.keys())}", file=sys.stderr)
         sys.exit(1)
+    speaker = _SPEAKER_LOOKUP[speaker_key]
 
     # Read text from stdin
     raw_text = sys.stdin.read()
@@ -97,7 +102,7 @@ def main():
     print(f"[qwen-tts] Device: {device}, dtype: {dtype}", file=sys.stderr)
 
     model = Qwen3TTSModel.from_pretrained(
-        "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+        "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
         device_map=device,
         dtype=dtype,
         attn_implementation=attn_impl,

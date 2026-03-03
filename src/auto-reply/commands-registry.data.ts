@@ -256,6 +256,25 @@ function buildChatCommands(): ChatCommandDefinition[] {
       },
     }),
     defineChatCommand({
+      key: "voice",
+      nativeName: "voice",
+      description: "Switch voice mode (fast=kokoro, slow=qwen).",
+      textAlias: "/voice",
+      category: "media",
+      args: [
+        {
+          name: "mode",
+          description: "fast or slow",
+          type: "string",
+          choices: [
+            { value: "fast", label: "Fast (Kokoro)" },
+            { value: "slow", label: "Slow (Qwen)" },
+          ],
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
       key: "whoami",
       nativeName: "whoami",
       description: "Show your sender id.",
