@@ -151,6 +151,7 @@ Available groups:
 - `group:automation`: `cron`, `gateway`
 - `group:messaging`: `message`
 - `group:nodes`: `nodes`
+- `group:osint`: `render_osint_map`, `osint_search_weather`, `osint_search_webcams`
 - `group:ernos`: all built-in ErnOS tools (excludes provider plugins)
 
 Example (allow only file tools + browser):
@@ -498,6 +499,21 @@ Notes:
 
 - Result is restricted to per-agent allowlists (`agents.list[].subagents.allowAgents`).
 - When `["*"]` is configured, the tool includes all configured agents and marks `allowAny: true`.
+
+### `osint_*` / `render_osint_map`
+
+Query live geospatial data and render the OmniGrid intelligence map via Kepler.gl integration.
+
+Core tools:
+
+- `render_osint_map`: Render interactive 3D map for bounding box with active data layers (e.g. `firms`, `gdelt`, `webcams`).
+- `osint_search_weather`: Search the live weather anomalies cache for severe precipitation.
+- `osint_search_webcams`: Query the live CCTV cache (via Windy Webcams) for traffic camera context.
+
+Notes:
+
+- Extends standard mapping with enterprise integrations for thermal anomalies, live global sentiment, and unsecured public webcams.
+- See [OSINT Engine](/tools/osint) for detailed OmniGrid capabilities.
 
 ## Parameters (common)
 
