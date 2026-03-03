@@ -352,7 +352,7 @@ export const MarkdownConfigSchema = z
   .strict()
   .optional();
 
-export const TtsProviderSchema = z.enum(["elevenlabs", "openai", "edge", "kokoro"]);
+export const TtsProviderSchema = z.enum(["elevenlabs", "openai", "edge", "kokoro", "qwen"]);
 export const TtsModeSchema = z.enum(["final", "all"]);
 export const TtsAutoSchema = z.enum(["off", "always", "inbound", "tagged"]);
 export const TtsConfigSchema = z
@@ -410,6 +410,14 @@ export const TtsConfigSchema = z
       .object({
         voice: z.string().optional(),
         speed: z.number().positive().max(5.0).optional(),
+      })
+      .strict()
+      .optional(),
+    qwen: z
+      .object({
+        speaker: z.string().optional(),
+        language: z.string().optional(),
+        instruct: z.string().optional(),
       })
       .strict()
       .optional(),
