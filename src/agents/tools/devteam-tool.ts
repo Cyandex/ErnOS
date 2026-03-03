@@ -7,8 +7,6 @@
 
 import { Type } from "@sinclair/typebox";
 import type { ErnOSConfig } from "../../config/config.js";
-import { loadConfig } from "../../config/config.js";
-import { resolveStateDir } from "../../config/paths.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { AnyAgentTool } from "./common.js";
 import { readStringParam, ToolInputError, jsonResult } from "./common.js";
@@ -32,42 +30,7 @@ const DevTeamSchema = Type.Object({
   session_name: Type.Optional(Type.String({ description: "Session name for 'status' or 'stop'." })),
 });
 
-// ─── Singleton sidecar + bridge ────────────────────────────────────────
-
-let sidecarInstance: import("../../chatdev/sidecar.js").ChatDevSidecar | null = null;
-let bridgeInstance: import("../../chatdev/bridge.js").ChatDevBridge | null = null;
-let registryInstance: import("../../chatdev/workflow-registry.js").WorkflowRegistry | null = null;
-
-async function ensureSidecar(config?: ErnOSConfig) {
-  if (sidecarInstance)
-    return { sidecar: sidecarInstance, bridge: bridgeInstance!, registry: registryInstance! };
-
-  const cfg = config ?? loadConfig();
-  const chatdevPath =
-    ((cfg as Record<string, unknown>).chatdevPath as string) ??
-    `${process.env.HOME}/Desktop/ChatDev`;
-
-  const { ChatDevSidecar } = await import("../../chatdev/sidecar.js");
-  const { ChatDevBridge } = await import("../../chatdev/bridge.js");
-  const { WorkflowRegistry } = await import("../../chatdev/workflow-registry.js");
-
-  sidecarInstance = new ChatDevSidecar({
-    chatdevPath,
-    port: 8766,
-    host: "127.0.0.1",
-    pythonCommand: `${process.env.HOME}/.local/bin/uv run`,
-    autoRestart: true,
-  });
-
-  await sidecarInstance.start();
-
-  bridgeInstance = new ChatDevBridge(sidecarInstance);
-  registryInstance = new WorkflowRegistry(chatdevPath);
-
-  return { sidecar: sidecarInstance, bridge: bridgeInstance, registry: registryInstance };
-}
-
-// ─── Tool Factory ──────────────────────────────────────────────────────
+import { ensureSharedSidecar } from "../../chatdev/instance.js";
 
 export function createDevTeamTool(opts?: {
   config?: ErnOSConfig;
@@ -107,7 +70,7 @@ export function createDevTeamTool(opts?: {
             throw new ToolInputError(`Unknown action: ${action}. Use: list, run, status, stop.`);
         }
       } catch (err) {
-        if (err instanceof ToolInputError) throw err;
+        if (err instanceof ToolInputError) {throw err;}
         const msg = err instanceof Error ? err.message : String(err);
         log.warn(`DevTeam tool error: ${msg}`);
         return jsonResult({
@@ -122,7 +85,7 @@ export function createDevTeamTool(opts?: {
 // ─── Action Handlers ───────────────────────────────────────────────────
 
 async function handleList(config?: ErnOSConfig) {
-  const { registry } = await ensureSidecar(config);
+  const { registry } = await ensureSharedSidecar(config);
   const workflows = registry.scan();
 
   return jsonResult({
@@ -143,7 +106,7 @@ async function handleRun(params: Record<string, unknown>, config?: ErnOSConfig, 
   const prompt = readStringParam(params, "prompt", { required: true });
   const sessionName = `devteam_${Date.now()}`;
 
-  const { bridge } = await ensureSidecar(config);
+  const { bridge } = await ensureSharedSidecar(config);
 
   log.info(
     `DevTeam: running workflow=${workflow} prompt="${prompt.slice(0, 80)}..." session=${sessionName}`,
@@ -177,19 +140,21 @@ async function handleRun(params: Record<string, unknown>, config?: ErnOSConfig, 
   });
 }
 
-async function handleStatus() {
-  if (!bridgeInstance) {
+async function handleStatus(config?: ErnOSConfig) {
+  const { sidecar, bridge } = await ensureSharedSidecar(config);
+
+  const active = bridge.getActiveWorkflows();
+  if (active.length === 0) {
     return jsonResult({
       success: true,
-      sidecar: "not_started",
+      sidecar: sidecar.getStatus(),
       activeWorkflows: [],
     });
   }
 
-  const active = bridgeInstance.getActiveWorkflows();
   return jsonResult({
     success: true,
-    sidecar: sidecarInstance?.getStatus() ?? "unknown",
+    sidecar: sidecar.getStatus(),
     activeWorkflows: active.map((w) => ({
       sessionName: w.sessionName,
       userId: w.userId,
@@ -199,14 +164,17 @@ async function handleStatus() {
   });
 }
 
-async function handleStop(params: Record<string, unknown>) {
+async function handleStop(params: Record<string, unknown>, config?: ErnOSConfig) {
   const sessionName = readStringParam(params, "session_name", { required: true });
 
-  if (!bridgeInstance) {
-    throw new ToolInputError("No active workflows. ChatDev sidecar is not running.");
+  const { bridge } = await ensureSharedSidecar(config);
+
+  const activeWorkflows = bridge.getActiveWorkflows();
+  if (!activeWorkflows.find((w) => w.sessionName === sessionName)) {
+    throw new ToolInputError(`Workflow session '${sessionName}' not found or already finished.`);
   }
 
-  bridgeInstance.cancelWorkflow(sessionName);
+  bridge.cancelWorkflow(sessionName);
 
   return jsonResult({
     success: true,

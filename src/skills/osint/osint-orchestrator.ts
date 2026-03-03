@@ -1,5 +1,5 @@
 import { getActiveDisasters } from "./disaster-gdacs.js";
-import { ingestFlights, getCachedFlights, ingestShips, getCachedShips } from "./ingest-workers.js";
+import { ingestFlights, getCachedFlights, ingestShips, getCachedShips, getCachedFirms, getCachedGdelt, ingestWeather, getCachedWeather, ingestWebcams, getCachedWebcams } from "./ingest-workers.js";
 import { getAcledEvents } from "./threat-acled.js";
 
 // ----------------------------------------------------------------------------
@@ -10,7 +10,7 @@ export const osintSkills = [
   {
     name: "osint_search_aviation",
     description:
-      "Fetches live commercial and private aviation/flight tracking data (ADS-B), including aircraft transponders, within a specific bounding box.",
+      "Fetches live commercial and private aviation transponder data (ADS-B) within a specific bounding box.",
     parameters: {
       type: "object",
       properties: {
@@ -37,8 +37,7 @@ export const osintSkills = [
   },
   {
     name: "osint_search_maritime",
-    description:
-      "Fetches live maritime, naval, and shipping vessel tracking data (AIS) within a specific bounding box.",
+    description: "Fetches live maritime vessel tracking data (AIS) within a specific bounding box.",
     parameters: {
       type: "object",
       properties: {
@@ -66,7 +65,7 @@ export const osintSkills = [
   {
     name: "osint_search_threats",
     description:
-      "Fetches reported military conflicts, armed clashes, violence, and protest data (ACLED) within a bounding box.",
+      "Fetches reported armed conflict, violence, and protest data (ACLED) within a bounding box.",
     parameters: {
       type: "object",
       properties: {
@@ -94,6 +93,61 @@ export const osintSkills = [
             text:
               JSON.stringify(events).substring(0, 2000) +
               "... [Data truncated. Use render_osint_map to visualize.]",
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: "osint_search_weather",
+    description:
+      "Fetches live global weather METAR observations (current wind vectors, temperature, moisture) from aviation stations within a specific bounding box.",
+    parameters: {
+      type: "object",
+      properties: {
+        lamin: { type: "number", description: "Minimum latitude" },
+        lomin: { type: "number", description: "Minimum longitude" },
+        lamax: { type: "number", description: "Maximum latitude" },
+        lomax: { type: "number", description: "Maximum longitude" },
+      },
+      required: ["lamin", "lomin", "lamax", "lomax"],
+    },
+    execute: async (_toolCallId: string, args: any) => {
+      await ingestWeather(args.lamin, args.lomin, args.lamax, args.lomax);
+      const obs = getCachedWeather(args.lamin, args.lomin, args.lamax, args.lomax);
+      return {
+        success: true,
+        content: [
+          {
+            type: "text",
+            text: `Successfully fetched ${obs.length} live weather stations. Use render_osint_map to visualize them.`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: "osint_search_webcams",
+    description: "Fetches live public CCTV and traffic cameras (Windy Webcams) within a specific bounding box.",
+    parameters: {
+      type: "object",
+      properties: {
+        lamin: { type: "number", description: "Minimum latitude" },
+        lomin: { type: "number", description: "Minimum longitude" },
+        lamax: { type: "number", description: "Maximum latitude" },
+        lomax: { type: "number", description: "Maximum longitude" },
+      },
+      required: ["lamin", "lomin", "lamax", "lomax"],
+    },
+    execute: async (_toolCallId: string, args: any) => {
+      await ingestWebcams(args.lamin, args.lomin, args.lamax, args.lomax);
+      const cams = getCachedWebcams(args.lamin, args.lomin, args.lamax, args.lomax);
+      return {
+        success: true,
+        content: [
+          {
+            type: "text",
+            text: `Successfully fetched ${cams.length} live public webcams. Use render_osint_map to visualize them.`,
           },
         ],
       };
@@ -137,7 +191,7 @@ export const osintSkills = [
         lomax: { type: "number", description: "Maximum longitude bound for gathering local data" },
         layers_to_enable: {
           type: "array",
-          items: { type: "string", enum: ["aviation", "maritime", "threats", "disasters"] },
+          items: { type: "string", enum: ["aviation", "maritime", "threats", "disasters", "firms", "gdelt", "weather", "webcams"] },
           description: "Which telemetry layers to overlay",
         },
       },
@@ -169,7 +223,10 @@ export const osintSkills = [
               { name: "latitude", format: "real" },
               { name: "velocity", format: "real" },
             ],
-            rows: flightsData.map((f: any) => [f.icao24, f.longitude, f.latitude, f.velocity]),
+            rows: flightsData.map((f: any) => {
+              const meta = JSON.parse(f.metadata || "{}");
+              return [meta.icao24 || f.event_id, f.longitude, f.latitude, meta.velocity || 0];
+            }),
           },
         });
       }
@@ -185,7 +242,73 @@ export const osintSkills = [
               { name: "latitude", format: "real" },
               { name: "sog", format: "real" },
             ],
-            rows: shipsData.map((s: any) => [s.mmsi, s.longitude, s.latitude, s.sog]),
+            rows: shipsData.map((s: any) => {
+              const meta = JSON.parse(s.metadata || "{}");
+              return [meta.mmsi || s.event_id, s.longitude, s.latitude, meta.sog || 0];
+            }),
+          },
+        });
+      }
+
+      if (layers.includes("firms")) {
+        const firmsData = getCachedFirms(lamin, lomin, lamax, lomax);
+        datasets.push({
+          info: { id: "firms", label: "Thermal Anomalies (FIRMS)" },
+          data: {
+            fields: [
+              { name: "brightness", format: "real" },
+              { name: "longitude", format: "real" },
+              { name: "latitude", format: "real" },
+              { name: "confidence", format: "real" },
+            ],
+            rows: firmsData.map((f: any) => {
+              const meta = JSON.parse(f.metadata || "{}");
+              return [meta.brightness || 0, f.longitude, f.latitude, f.confidence];
+            }),
+          },
+        });
+      }
+
+      if (layers.includes("gdelt")) {
+        const gdeltData = getCachedGdelt(lamin, lomin, lamax, lomax);
+        datasets.push({
+          info: { id: "gdelt", label: "Global Events (GDELT)" },
+          data: {
+            fields: [
+              { name: "event_type", format: "string" },
+              { name: "actor1", format: "string" },
+              { name: "goldstein", format: "real" },
+              { name: "longitude", format: "real" },
+              { name: "latitude", format: "real" },
+              { name: "url", format: "string" },
+            ],
+            rows: gdeltData.map((e: any) => {
+              const meta = JSON.parse(e.metadata || "{}");
+              return [e.event_type, meta.actor1 || "Unknown", meta.goldstein || 0, e.longitude, e.latitude, meta.url || ""];
+            }),
+          },
+        });
+      }
+
+      if (layers.includes("weather")) {
+        const weatherData = getCachedWeather(lamin, lomin, lamax, lomax);
+        datasets.push({
+          info: { id: "weather", label: "Live Weather (METAR)" },
+          data: {
+            fields: [
+              { name: "station_id", format: "string" },
+              { name: "longitude", format: "real" },
+              { name: "latitude", format: "real" },
+              { name: "temp_c", format: "real" },
+              { name: "wind_speed_kt", format: "real" },
+              { name: "wind_dir", format: "real" },
+              { name: "visibility", format: "string" },
+              { name: "flight_category", format: "string" },
+            ],
+            rows: weatherData.map((w: any) => {
+              const meta = JSON.parse(w.metadata || "{}");
+              return [meta.station_id || w.event_id, w.longitude, w.latitude, meta.temp_c || 0, meta.wind_speed_kt || 0, meta.wind_dir || 0, meta.visibility || "", meta.flight_category || ""];
+            }),
           },
         });
       }
@@ -195,6 +318,28 @@ export const osintSkills = [
         datasets.push({
           info: { id: "disasters", label: "Global Disasters (GDACS)" },
           data: gdacsGeojson,
+        });
+      }
+
+      if (layers.includes("webcams")) {
+        const webcamsData = getCachedWebcams(lamin, lomin, lamax, lomax);
+        datasets.push({
+          info: { id: "webcams", label: "Public CCTV (Windy)" },
+          data: {
+            fields: [
+              { name: "title", format: "string" },
+              { name: "longitude", format: "real" },
+              { name: "latitude", format: "real" },
+              { name: "status", format: "string" },
+              { name: "category", format: "string" },
+              { name: "image_url", format: "string" },
+              { name: "webcam_url", format: "string" },
+            ],
+            rows: webcamsData.map((c: any) => {
+              const meta = JSON.parse(c.metadata || "{}");
+              return [meta.title || "Unknown CCTV", c.longitude, c.latitude, meta.status || "active", meta.category || "unknown", meta.image_url || "", meta.webcam_url || ""];
+            }),
+          },
         });
       }
 

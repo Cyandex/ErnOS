@@ -1,7 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { WorkflowEvent } from "../../chatdev/bridge.js";
 import type { ErnOSConfig } from "../../config/config.js";
-import { loadConfig } from "../../config/config.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { AnyAgentTool } from "./common.js";
 import { readStringParam, ToolInputError } from "./common.js";
@@ -22,40 +21,7 @@ export const ChatDevOrchestratorSchema = Type.Object({
   ),
 });
 
-// Singleton sidecar tracking matching devteam-tool
-let sidecarInstance: import("../../chatdev/sidecar.js").ChatDevSidecar | null = null;
-let bridgeInstance: import("../../chatdev/bridge.js").ChatDevBridge | null = null;
-let registryInstance: import("../../chatdev/workflow-registry.js").WorkflowRegistry | null = null;
-
-async function ensureSidecar(config?: ErnOSConfig) {
-  if (sidecarInstance) {
-    return { sidecar: sidecarInstance, bridge: bridgeInstance!, registry: registryInstance! };
-  }
-
-  const cfg = config ?? loadConfig();
-  const chatdevPath =
-    ((cfg as Record<string, unknown>).chatdevPath as string) ??
-    `${process.env.HOME}/Desktop/ChatDev`;
-
-  const { ChatDevSidecar } = await import("../../chatdev/sidecar.js");
-  const { ChatDevBridge } = await import("../../chatdev/bridge.js");
-  const { WorkflowRegistry } = await import("../../chatdev/workflow-registry.js");
-
-  sidecarInstance = new ChatDevSidecar({
-    chatdevPath,
-    port: 8766,
-    host: "127.0.0.1",
-    pythonCommand: `${process.env.HOME}/.local/bin/uv run`,
-    autoRestart: true,
-  });
-
-  await sidecarInstance.start();
-
-  bridgeInstance = new ChatDevBridge(sidecarInstance);
-  registryInstance = new WorkflowRegistry(chatdevPath);
-
-  return { sidecar: sidecarInstance, bridge: bridgeInstance, registry: registryInstance };
-}
+import { ensureSharedSidecar } from "../../chatdev/instance.js";
 
 /**
  * Creates the synchronous ChatDev deep-integration tool.
@@ -84,7 +50,7 @@ export function createChatDevOrchestratorTool(options: {
 
       try {
         log.info(`[ChatDev Deep] Booting Sidecar...`);
-        const { bridge } = await ensureSidecar(options.config);
+        const { bridge } = await ensureSharedSidecar(options.config);
 
         // Inject ErnOS persistent memory context into the task if available
         let contextualizedTask = prompt;

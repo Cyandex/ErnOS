@@ -9,6 +9,7 @@ import { Provider } from "react-redux";
 import { createStore, combineReducers, applyMiddleware } from "redux";
 
 // Create a Redux store specifically for the Kepler instance
+// @ts-ignore
 const customizedKeplerGlReducer = keplerGlReducer.initialState({
   uiState: {
     readOnly: false,
@@ -25,14 +26,21 @@ const store = createStore(
 );
 
 // The actual React Component we want to mount
-const OsintMapApp = ({ width, height, mapboxApiAccessToken, mapData }: Record<string, unknown>) => {
+interface OsintMapAppProps {
+  width: number;
+  height: number;
+  mapboxApiAccessToken: string;
+  mapData: unknown[]; // Kepler datasets
+}
+
+const OsintMapApp = ({ width, height, mapboxApiAccessToken, mapData }: OsintMapAppProps) => {
   // Dispatch data when mapData props change
   React.useEffect(() => {
-    if (mapData && mapData.length > 0) {
+    if (mapData && Array.isArray(mapData) && mapData.length > 0) {
       store.dispatch(
         addDataToMap({
           datasets: mapData,
-          option: {
+          options: {
             centerMap: true,
             readOnly: false,
           },
@@ -42,9 +50,12 @@ const OsintMapApp = ({ width, height, mapboxApiAccessToken, mapData }: Record<st
     }
   }, [mapData]);
 
+  // @ts-ignore
+  const KeplerComponent = KeplerGl as unknown;
+
   return (
     <Provider store={store}>
-      <KeplerGl
+      <KeplerComponent
         id="ernos-osint-map"
         width={width}
         height={height}

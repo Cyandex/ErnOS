@@ -132,6 +132,7 @@ export class ChatDevBridge {
       // is registered on the server before we fire the HTTP execute request.
       const wsUrl = `${baseUrl.replace("http", "ws")}/ws`;
       const serverSessionId = await this.connectWorkflowWebSocket(wsUrl, sessionName, workflow);
+      const effectiveSessionId = serverSessionId || sessionName;
 
       // Execute via REST API
       const abortController = new AbortController();
@@ -144,7 +145,7 @@ export class ChatDevBridge {
           yaml_file: params.yamlFile,
           task_prompt: params.taskPrompt,
           attachments: params.attachments ?? [],
-          session_id: serverSessionId, // Send the server's generated session ID instead of local session_name
+          session_id: effectiveSessionId,
           variables: params.variables ?? {},
         }),
         signal: abortController.signal,
@@ -215,7 +216,7 @@ export class ChatDevBridge {
         description?: string;
       }>;
     } catch (err) {
-      log.warn(`Failed to list workflows: ${err instanceof Error ? err.message : String(err)}`);
+      log.warn(`Failed to list workflows: ${String(err)}`);
       return [];
     }
   }
@@ -290,37 +291,31 @@ export class ChatDevBridge {
     wsUrl: string,
     sessionName: string,
     workflow: ActiveWorkflow,
-  ): Promise<string> {
-    return new Promise<string>((resolve) => {
-      let resolved = false;
+  ): Promise<string | undefined> {
+    return new Promise<string | undefined>((resolve, _reject) => {
       try {
         const ws = new WebSocket(wsUrl);
         workflow.ws = ws;
 
         // Resolve once the WebSocket is open — the server has registered the session.
         const openTimeout = setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            resolve(sessionName); // Fallback to local session_name if no connection msg
-          }
+          resolve(undefined); // Don't block forever; proceed even if WS is slow.
         }, 5000);
 
         ws.addEventListener("open", () => {
           log.info(`WebSocket connected for workflow: ${sessionName}`);
+          // Wait for the server's 'connection' event before resolving.
         });
 
         ws.addEventListener("message", (event) => {
           try {
             const data = JSON.parse(String(event.data)) as Record<string, unknown>;
 
-            if (data.type === "connection" && data.data) {
-              const serverId = (data.data as Record<string, unknown>).session_id as string;
-              if (!resolved) {
-                clearTimeout(openTimeout);
-                resolved = true;
-                resolve(serverId);
-              }
-              return; // Skip mapping this internal event
+            const payload = data.data as Record<string, unknown> | undefined;
+
+            if (data.type === "connection" && typeof payload?.session_id === "string") {
+              clearTimeout(openTimeout);
+              resolve(payload.session_id);
             }
 
             // Map ChatDev WebSocket events to our event types
@@ -334,12 +329,9 @@ export class ChatDevBridge {
         });
 
         ws.addEventListener("error", () => {
-          if (!resolved) {
-            clearTimeout(openTimeout);
-            resolved = true;
-            log.warn(`WebSocket error for workflow: ${sessionName}`);
-            resolve(sessionName); // Don't reject — fall through to HTTP-only mode.
-          }
+          clearTimeout(openTimeout);
+          log.warn(`WebSocket error for workflow: ${sessionName}`);
+          resolve(undefined); // Don't reject — fall through to HTTP-only mode.
         });
 
         ws.addEventListener("close", () => {
@@ -347,10 +339,7 @@ export class ChatDevBridge {
         });
       } catch {
         log.warn(`Failed to connect WebSocket for workflow: ${sessionName}`);
-        if (!resolved) {
-          resolved = true;
-          resolve(sessionName); // Don't block execution if WS fails entirely.
-        }
+        resolve(undefined); // Don't block execution if WS fails entirely.
       }
     });
   }
@@ -429,7 +418,7 @@ export class ChatDevBridge {
       try {
         await handler(event);
       } catch (err) {
-        log.warn(`Event handler error: ${err instanceof Error ? err.message : String(err)}`);
+        log.warn(`Event handler error: ${String(err)}`);
       }
     }
   }

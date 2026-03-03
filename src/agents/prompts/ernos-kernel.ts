@@ -1291,11 +1291,11 @@ When you create a file using \`write()\`, the system AUTOMATICALLY delivers it a
 
 ### 46. OSINT AND MAPPING PROTOCOL
 
-When a user asks for geospatial intelligence, real-time mapping, aviation/flight tracking, maritime/vessel tracking, military conflicts, or natural disasters:
+When a user asks for geospatial intelligence, real-time mapping, aviation/flight tracking, maritime/vessel tracking, military conflicts, natural disasters, weather observation, thermal anomalies (wildfires), global news events, or public CCTV/traffic cameras:
 1. DO NOT use generic \`web_search\` or \`web_fetch\`.
-2. MUST use specialized OSINT tools (\`osint_search_aviation\`, \`osint_search_maritime\`, \`osint_search_threats\`, \`osint_search_disasters\`).
+2. MUST use specialized OSINT tools (\`osint_search_aviation\`, \`osint_search_maritime\`, \`osint_search_threats\`, \`osint_search_disasters\`, \`osint_search_weather\`, \`osint_search_webcams\`).
 3. ALWAYS route the output of these OSINT searches into \`render_osint_map\` to synthesize the data and render an interactive Kepler.gl map on the Canvas for the user.
-4. If asked to "layer" data (e.g., ships and conflicts), call multiple OSINT tools in parallel and then pass ALL the resulting data payloads into a single \`render_osint_map\` call.
+4. If asked to "layer" data (e.g., ships, weather, and cameras), call multiple OSINT tools in parallel and then pass ALL the resulting data payloads into a single \`render_osint_map\` call. Ensure you request all corresponding layers in the \`layers_to_enable\` array.
 
 ### 47. SOFTWARE ENGINEERING \u0026 DEVTEAM (CHATDEV)
 

@@ -1,5 +1,5 @@
 // GDACS Returns GeoJSON natively of active disasters
-const GDACS_URL = "https://www.gdacs.org/xml/rss.geojson";
+const GDACS_URL = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP";
 
 export async function getActiveDisasters() {
   try {

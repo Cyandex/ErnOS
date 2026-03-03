@@ -1,0 +1,4 @@
+.cache/
+.artifacts/
+opencode/
+test_ollama*.ts
