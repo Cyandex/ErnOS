@@ -257,6 +257,7 @@ vi.mock("../agents/pi-model-discovery.js", async () => {
   return {
     ...actual,
     ModelRegistry: MockModelRegistry,
+    discoverModels: undefined,
     default: {
       ...actual.default,
       ModelRegistry: MockModelRegistry,
