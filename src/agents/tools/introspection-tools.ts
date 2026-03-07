@@ -51,8 +51,10 @@ function resolveSafePath(
   }
   const resolved = path.resolve(effectiveRoot, inputPath);
 
-  // Allow within root and /tmp
-  if (!resolved.startsWith(effectiveRoot) && !resolved.startsWith("/tmp/")) {
+  const homeDir = process.env.HOME || "/tmp";
+  // Allow anywhere under $HOME or /tmp — ErnOS is a local agent and
+  // should be able to read the user's own projects when asked.
+  if (!resolved.startsWith(homeDir) && !resolved.startsWith("/tmp/")) {
     return { safe: false, resolved, error: `Path '${inputPath}' is outside the allowed root.` };
   }
 
