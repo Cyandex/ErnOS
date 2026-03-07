@@ -14,7 +14,7 @@ export const createGoalsTools = () => {
           Type.String({ description: "Optional ID of the parent goal to nest this under." }),
         ),
       }),
-      execute: async (args: any) => {
+      execute: async (_toolCallId: string, args: any) => {
         const goal = goals.createGoal(args.title, args.description, args.parentGoalId);
         return `Created Goal: ${goal.id}`;
       },
@@ -24,7 +24,7 @@ export const createGoalsTools = () => {
       label: "List Active Goals",
       description: "Lists all currently active goals.",
       parameters: Type.Object({}),
-      execute: async () => {
+      execute: async (_toolCallId: string) => {
         const active = goals.getActiveGoals();
         return active.length > 0 ? JSON.stringify(active, null, 2) : "No active goals.";
       },
@@ -40,7 +40,7 @@ export const createGoalsTools = () => {
           Type.Unsafe<string>({ type: "string", enum: ["active", "completed", "abandoned"] }),
         ),
       }),
-      execute: async (args: any) => {
+      execute: async (_toolCallId: string, args: any) => {
         const res = goals.updateProgress(args.goalId, args.progress, args.status);
         return res
           ? `Updated Goal ${args.goalId} to ${args.progress}%`
